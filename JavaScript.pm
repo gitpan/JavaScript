@@ -18,6 +18,7 @@ sub exec {
 
 package JavaScript::Context;
 use strict;
+use Carp qw(croak);
 
 sub new {
 	my ($class, $rt, $stacksize) = @_;
@@ -106,8 +107,19 @@ sub bind_class {
 		die "Argument 'properties' must be a hash reference\n" unless(ref($args{properties}) eq 'HASH');
 		
 		# Make sure that all methods are valid, ie. they must be of integer type
-		foreach(keys %{$args{properties}}) {
-			die "Defined property '$_' is not numeric\n" unless($args{properties}->{$_} =~ /^\d+$/);
+		while (my($name,$opts)  = each %{$args{properties}}) {
+            if (!ref($opts)) { # flags only
+                $opts ||= 0;
+    			croak "Defined property '$name' is not numeric" unless($opts =~ /^\d+$/);
+                $opts = { flags => $opts};
+                $args{properties}->{$name} = $opts;
+                
+            }
+            if ($opts->{JavaScript::JS_PROP_ACCESSOR()}) {
+                unless ( ref($opts->{getter}) eq 'CODE' and ref ($opts->{setter}) eq 'CODE') {
+                    croak("getter and setter for propery '$name' must be code-refs");
+                }
+            }
 		}
 	} else {
 		$args{properties} = {};
@@ -122,7 +134,7 @@ sub bind_class {
 	unless(exists $args{package}) {
 		$args{package} = undef;
 	}
-
+    
 	my $rval = BindPerlClassImpl($self->{impl}, $args{name}, $args{constructor}, $args{methods}, $args{properties}, $args{package}, $args{flags});
 	return $rval;
 }
@@ -200,15 +212,17 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw(
 	JS_PROP_PRIVATE
 	JS_PROP_READONLY
+        JS_PROP_ACCESSOR
 	JS_CLASS_NO_INSTANCE
 );
 
-our $VERSION = '0.52';
+our $VERSION = '0.53';
 
 use vars qw($STACKSIZE $MAXBYTES $INITIALIZED);
 
 use constant JS_PROP_PRIVATE => 0x1;
 use constant JS_PROP_READONLY => 0x2;
+use constant JS_PROP_ACCESSOR => 0x4;
 use constant JS_CLASS_NO_INSTANCE => 0x1;
 
 BEGIN {

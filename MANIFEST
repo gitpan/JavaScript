@@ -16,3 +16,4 @@ t/t50object.t
 t/t60can.t
 t/t70file.js
 t/t70file.t
+META.yml                                Module meta-data (added by MakeMaker)

@@ -24,8 +24,10 @@ print "4 * 5 * 2 = " . $cx->call("test", 4, 5, 2);
 -------------
 INSTALLATION:
 
-To install JavaScript.pm, make sure you have libjs installed. Otherwize, grab a recent one from 
-ftp://ftp.mozilla.org/pub/js. The module is tested with 1.5 and later.
+To install JavaScript.pm, make sure you have libjs installed. Otherwize, grab a recent one from ftp://ftp.mozilla.org/pub/js. The module is tested with 1.5 and later.
+
+Debian users can alternatively install the libsmjs-dev package by doing
+> apt-get install libsmjs-dev
 
 Once libjs is installed and jsapi.h and other necessery headers can be found do:
 
@@ -34,6 +36,7 @@ Once libjs is installed and jsapi.h and other necessery headers can be found do:
 > make test
 > make install
 
+If you're getting errors in make test that looks something like "Assertion failure: (uint32)2 < JS_MIN(((obj)->map)->freeslot, ((obj)->map)->nslots), at jsapi.c:1969" you probablly have a libjs built with JS_THREADSAFE. To fix the problem set the environment vairable JS_THREADSAFE before running perl Makefile.PL. This should fix the problem.
 
 --------------
 DOCUMENTATION:
@@ -42,29 +45,26 @@ usage reference is available as POD, simply do
 
 > perldoc JavaScript
 
-
 ------------
 INFORMATION:
 
-= Official website is http://labs.contiller.se/JavaScript/
-= Support is available on IRC on channel #javascript.pm on irc.infobot.org
 = Mailing list is on the way, perl-javascript@perl.org, send an empty email to perl-javascript-subscribe@perl.org
 
-Please send questions/patches/docs/comments to "Claes Jacobsson", CLAESJAC@cpan.org
-
+Please send questions/patches/docs/comments to "Claes Jacobsson", claesjac@cpan.org
 
 -------
 THANKS:
+
+Joost Diepenmaat for fixing lots of stuff.
 
 SpiderMonkey creators at Netscape and Mozilla.org
 
 #perl on irc.infobot.org for support and feedback (ingy, Addi, sky, Co-Kane, sheriff_p, crab and everyone else i forgot to mention).
 
-
 COPYRIGHT:
 ----------
 
-Copyright (c) 2001, Claes Jacobsson, All Rights Reserved.
+Copyright (c) 2001-2005, Claes Jacobsson, All Rights Reserved. 
 JavaScript.pm is free software; you may redistribute it and/or modify 
 it under the same conditions as perl itself.
 

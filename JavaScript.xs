@@ -1,7 +1,11 @@
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
+#ifdef INCLUDES_IN_SMJS
+#include <smjs/jsapi.h>
+#else
 #include <jsapi.h>
+#endif
 #include <malloc.h>
 
 #define _IS_UNDEF(a) (SvANY(a) == SvANY(&PL_sv_undef))
@@ -10,6 +14,7 @@
 
 #define JS_PROP_PRIVATE 0x1
 #define JS_PROP_READONLY 0x2
+#define JS_PROP_ACCESSOR 0x4
 #define JS_CLASS_NO_INSTANCE 0x1
 
 /* Global class, does nothing */
@@ -39,8 +44,10 @@ struct PCB_Method {
 typedef struct PCB_Method PCB_Method;
 
 struct PCB_Property {
-	char			*name;
-	I32			flags;
+	char	*name;
+	I32		flags;
+    SV      *getter;    /* these are coderefs! */
+    SV      *setter;
 	struct PCB_Property	*next;
 };
 
@@ -142,10 +149,16 @@ PCB_GetCallbackFunction(PCB_Context *cx, char *name) {
 static PCB_Class *
 PCB_GetClass(PCB_Context *cx, char *name) {
 	PCB_Class *ret = NULL;
-
+    if (!name) {
+        croak("No name specified in PCB_GetClass");
+    }
+    
 	ret = cx->class_list;
 
 	while(ret) {
+        if (!ret->classname) {
+            croak("No ret->classname specified in PCB_GetClass");
+        }
 		if(strcmp(ret->classname, name) == 0) {
 			return ret;
 		}
@@ -155,6 +168,7 @@ PCB_GetClass(PCB_Context *cx, char *name) {
 
 	return NULL;
 }
+
 
 static PCB_Class *
 PCB_GetClassByPackage(PCB_Context *cx, char *package) {
@@ -192,15 +206,16 @@ PCB_GetMethod(PCB_Class *cls, char *name) {
 	return NULL;
 }
 
-static I32
-PCB_GetPropertyFlags(PCB_Class *cls, char *name) {
+
+static PCB_Property*
+PCB_GetPropertyStruct(PCB_Class *cls, char *name) {
 	PCB_Property *prop;
 
 	prop = cls->properties;
 
 	while(prop) {
 		if(strcmp(prop->name, name) == 0) {
-			return prop->flags;
+			return prop;
 		}
 
 		prop = prop->next;
@@ -274,7 +289,9 @@ PCB_NewStdJSClass(char *name) {
 	JSClass *jsc;
 
 	jsc = (JSClass*) calloc(1, sizeof(JSClass));
-	jsc->name = (char *) calloc(strlen(name), sizeof(char));
+	if (!(jsc->name = (char *) calloc(strlen(name)+1, sizeof(char)))) {
+        croak("Can't allocate space for classname");
+    }
 	strcpy(jsc->name, name);
 
 	jsc->flags = JSCLASS_HAS_PRIVATE;
@@ -329,8 +346,11 @@ PCB_InstancePerlClassStub(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 	}
 
 	/* Extract constructor */
-	jsclass = JS_GetClass(obj);
-
+#ifdef JS_THREADSAFE
+	jsclass = JS_GetClass(cx,obj);
+#else 
+    jsclass = JS_GetClass(obj);
+#endif
 	/* Check if we are allowed to instanciate this class */
 	if((pl_class->flags & JS_CLASS_NO_INSTANCE)) {
 		JS_ReportError(cx, "Class '%s' can't be instanciated", jsclass->name);
@@ -396,8 +416,12 @@ PCB_MethodCallPerlClassStub(JSContext *cx, JSObject *obj, uintN argc, jsval *arg
 	if(!(context = PCB_GetContext(cx))) {
 		croak("Can't get context\n");
 	}
+#ifdef JS_THREADSAFE
+	jsclass = JS_GetClass(cx,obj);
+#else 
+    jsclass = JS_GetClass(obj);
+#endif
 
-	jsclass = JS_GetClass(obj);
 
 	if(!(pl_class = PCB_GetClass(context, jsclass->name))) {
 		croak("Can't find class\n");
@@ -459,101 +483,140 @@ PCB_MethodCallPerlClassStub(JSContext *cx, JSObject *obj, uintN argc, jsval *arg
 
 static JSBool
 PCB_GetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-	PCB_Context *context;
-	PCB_Class   *pl_class;
+    PCB_Context *context;
+    PCB_Class   *pl_class;
 
-	SV	*pobj;
-	char	*keyname;
-	JSClass	*jsclass;
-	I32	flags;
+    SV	*pobj;
+    char	*keyname;
+    JSClass	*jsclass;
 
-	keyname = JS_GetStringBytes(JSVAL_TO_STRING(id));
+    PCB_Property *prop;
+    dSP;
 
-	pobj = (SV *) JS_GetPrivate(cx, obj);
+    keyname = JS_GetStringBytes(JSVAL_TO_STRING(id));
 
-	if(SvROK(pobj)) {
-		if(SvTYPE(SvRV(pobj)) == SVt_PVHV) {
-			HV	*hv_obj;
-			SV 	**keyval;
+    pobj = (SV *) JS_GetPrivate(cx, obj);
 
-			hv_obj = (HV *) SvRV(pobj);
+    if(SvROK(pobj) && sv_isobject(pobj)) {
+        if(!(context = PCB_GetContext(cx))) {
+            croak("Can't get context\n");
+        }
 
-			if(hv_exists(hv_obj, keyname, strlen(keyname))) {
-				/* Find property */
-				if(sv_isobject(pobj)) {
-					if(!(context = PCB_GetContext(cx))) {
-						croak("Can't get context\n");
-					}
+#ifdef JS_THREADSAFE
+        jsclass = JS_GetClass(cx,obj);
+#else 
+        jsclass = JS_GetClass(obj);
+#endif
 
-					jsclass = JS_GetClass(obj);
+        if(!(pl_class = PCB_GetClass(context, jsclass->name))) {
+            croak("Can't find class\n");
+        }
 
-					if(!(pl_class = PCB_GetClass(context, jsclass->name))) {
-						croak("Can't find class\n");
-					}
+        prop = PCB_GetPropertyStruct(pl_class, keyname);
+        if (!prop) {
+            return JS_FALSE;
+        }
+        if(prop->flags & JS_PROP_ACCESSOR) {
+            SV * value;
 
-					flags = PCB_GetPropertyFlags(pl_class, keyname);
+            ENTER;
+            SAVETMPS;
+            
+            PUSHMARK(SP);
+            XPUSHs(pobj);
+            PUTBACK;
+            if (call_sv(SvRV(prop->getter),G_SCALAR) != 1) {
+                croak("No value returned by getter for property %s!",keyname);
+            }
+            SPAGAIN;
+            value = POPs;
+            SVToJSVAL(cx, obj, value, vp);
+            PUTBACK ;
+            FREETMPS ;
+            LEAVE ;
+        }
+        else if(SvTYPE(SvRV(pobj)) == SVt_PVHV) {
+            HV	*hv_obj;
+            SV 	**keyval;
 
-				}
-	
-				keyval = hv_fetch(hv_obj, keyname, strlen(keyname), 0);
-				
-				SVToJSVAL(cx, obj, *keyval, vp);
-			}
-		}
-	}
+            hv_obj = (HV *) SvRV(pobj);
 
-	return JS_TRUE;
+            if(hv_exists(hv_obj, keyname, strlen(keyname))) {
+                keyval = hv_fetch(hv_obj, keyname, strlen(keyname), 0);
+
+                SVToJSVAL(cx, obj, *keyval, vp);
+            }
+        }
+    }
+
+    return JS_TRUE;
 }
 
 
 
 static JSBool
 PCB_SetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-	PCB_Context *context;
-	PCB_Class *pl_class;
-	JSClass	*jsclass;
-	SV	*pobj;
-	char	*keyname;
-	I32	flags;
+    dSP;
+    PCB_Context *context;
+    PCB_Class *pl_class;
+    JSClass	*jsclass;
+    SV	*pobj;
+    char	*keyname;
+    PCB_Property *prop;
 
-	keyname = JS_GetStringBytes(JSVAL_TO_STRING(id));
+    keyname = JS_GetStringBytes(JSVAL_TO_STRING(id));
 
 
-	pobj = (SV *) JS_GetPrivate(cx, obj);
+    pobj = (SV *) JS_GetPrivate(cx, obj);
 
-	if(SvROK(pobj)) {
-		if(SvTYPE(SvRV(pobj)) == SVt_PVHV) {
-			HV	*hv_obj;
-			SV	*value = newSViv(0);
-		
-			hv_obj = (HV *) SvRV(pobj);
+    if(SvROK(pobj)) {
+        if(!(context = PCB_GetContext(cx))) {
+            croak("Can't get context\n");
+        }
+#ifdef JS_THREADSAFE
+        jsclass = JS_GetClass(cx,obj);
+#else 
+        jsclass = JS_GetClass(obj);
+#endif
 
-			if(hv_exists(hv_obj, keyname, strlen(keyname))) {
-				/* Find property */
-				if(sv_isobject(pobj)) {
-					if(!(context = PCB_GetContext(cx))) {
-						croak("Can't get context\n");
-					}
 
-					jsclass = JS_GetClass(obj);
 
-					if(!(pl_class = PCB_GetClass(context, jsclass->name))) {
-						croak("Can't find class\n");
-					}
+        if(!(pl_class = PCB_GetClass(context, jsclass->name))) {
+            croak("Can't find class\n");
+        }
 
-					flags = PCB_GetPropertyFlags(pl_class, keyname);
+        prop = PCB_GetPropertyStruct(pl_class, keyname);
+        if (!prop) {
+            return JS_FALSE;
+        }
 
-					if(flags & JS_PROP_READONLY) {
-						JS_ReportError(cx, "Property '%s' is readonly\n", keyname);
-						return JS_FALSE;
-					}
-				}
+        if(prop->flags & JS_PROP_READONLY) {
+            JS_ReportError(cx, "Property '%s' is readonly\n", keyname);
+            return JS_FALSE;
+        }
+        if(prop->flags & JS_PROP_ACCESSOR) {
+            SV * value;
 
-				JSVALToSV(cx, obj, *vp, &value);
-				hv_store(hv_obj, keyname, strlen(keyname), value, 0);
-			}
-		}
-	}
+            value = newSViv(0);
+
+            JSVALToSV(cx, obj, *vp, &value);
+            PUSHMARK(SP);
+            XPUSHs(pobj);
+            XPUSHs(sv_2mortal(value)) ;
+            PUTBACK;
+            call_sv(SvRV(prop->setter),G_DISCARD);
+        }
+        else if(SvTYPE(SvRV(pobj)) == SVt_PVHV) {
+            HV	*hv_obj;
+            SV	*value = newSViv(0);
+
+            hv_obj = (HV *) SvRV(pobj);
+
+            JSVALToSV(cx, obj, *vp, &value);
+            hv_store(hv_obj, keyname, strlen(keyname), value, 0);
+        }
+    }
+    return JS_TRUE;
 }
 
 static void
@@ -581,7 +644,7 @@ PCB_AddPerlClass(PCB_Context *context, char *classname, SV *constructor, SV *met
 		perl_class->package = NULL;
 
 		if(pkname != NULL) {
-			perl_class->package = (char *) calloc(strlen(pkname) + 1, sizeof(char));
+			perl_class->package = (char *) calloc(strlen(pkname) + 1, sizeof(char)); 
 			perl_class->package = strcpy(perl_class->package, pkname);
 		}
 
@@ -600,32 +663,83 @@ PCB_AddPerlClass(PCB_Context *context, char *classname, SV *constructor, SV *met
 			I32		flags;
 			PCB_Property	*prop = NULL; 
 							
+            HV      *property_hv;
+            SV      **property_value;
 			HV		*properties_hv = (HV *) SvRV(properties);
-
 			hvlen = hv_iterinit(properties_hv);
+            
 
 			while((heelem = hv_iternext(properties_hv)) != NULL) {
 				keyname	= hv_iterkey(heelem, &keylen);
 				svelem = hv_iterval(properties_hv, heelem);
 
-				if(SvIOK(svelem) && keylen) {
-					if(SvIV(svelem) & (JS_PROP_PRIVATE | JS_PROP_READONLY)) {
-						prop = (PCB_Property *) malloc(sizeof(PCB_Property));
-					
-						/* Copy the name of the property so we can identify it */
-						prop->name = (char *) calloc(strlen(keyname), sizeof(char));
-						strcpy(prop->name, keyname);
+                if(SvROK(svelem) && SvTYPE(SvRV(svelem)) == SVt_PVHV) {
+                    property_hv = (HV*) SvRV(svelem);
+                    
+                    if (property_value = hv_fetch(property_hv,"flags",5,0)) {
+                         if(SvIOK(*property_value)) {
+                             prop = (PCB_Property *) calloc(1,sizeof(PCB_Property));
 
-						/* Set flags to supplied value in properties hash */
-						prop->flags = SvIV(svelem);
-			
-						prop->next = perl_class->properties;
-						perl_class->properties = prop;
-					}
-				}
+                             /* Copy the name of the property so we can identify it */
+                             prop->name = (char *) calloc(strlen(keyname)+1, sizeof(char));
+                             strcpy(prop->name, keyname);
+
+                             /* Set flags to supplied value in properties hash */
+                             prop->flags = SvIV(*property_value);
+
+                             prop->next = perl_class->properties;
+                             perl_class->properties = prop;
+                         }
+                         else {
+                            croak("No valid flags for property %s (must be integer)",keyname);
+                         }
+                    }
+                    else {
+                        croak("No flags for property %s",keyname);
+                    }
+
+                    if (prop->flags & JS_PROP_ACCESSOR) {
+                        if (property_value = hv_fetch(property_hv,"getter",6,0)) {
+                            if (SvROK(*property_value) && 
+                                    SvTYPE(SvRV(*property_value)) == SVt_PVCV) {
+
+                                /* insert setter gunction  */
+                                prop->getter = *property_value;
+                                SvREFCNT_inc(prop->getter);
+                            }
+                            else {
+                                croak("Getter for property %s must be coderef");
+                            }
+                        }
+                        else {
+                            croak("No getter for property %s",keyname);
+                        }
+                        if (! (prop->flags & JS_PROP_READONLY)) {
+                            if (property_value = hv_fetch(property_hv,"setter",6,0)) {
+                                if (SvROK(*property_value) && 
+                                        SvTYPE(SvRV(*property_value)) == SVt_PVCV) {
+
+                                    /* insert setter gunction  */
+                                    prop->setter = *property_value;
+                                    SvREFCNT_inc(prop->setter);
+                                }
+                                else {
+                                    croak("Setter for property %s must be coderef");
+                                }
+                            }
+                            else {
+                                croak("No setter for property %s",keyname);
+                            }
+                        }
+                    }
+
+                }
+                else {
+                    croak("Property %s must be hashref",keyname);
+                }
 			}
 		}
-	
+
 		/* Create method spec array */
 		if(SvROK(methods)) {
 			if(SvTYPE(SvRV(methods)) == SVt_PVHV) {
@@ -652,15 +766,19 @@ PCB_AddPerlClass(PCB_Context *context, char *classname, SV *constructor, SV *met
 
 							methods_cnt++;
 						}
+                        else {
+                            croak("Invalid method");
+                        }
 					}
 				}
 
 				/* Set index to zero */
 				idx = 0;
-
+                /* always reserve space for empty def at end (see below) */
+				jsmethods = (JSFunctionSpec *) calloc(methods_cnt + 1, sizeof(JSFunctionSpec));
+                
 				if(methods_cnt) {
 					/* Assume all keys are code references */
-					jsmethods = (JSFunctionSpec *) calloc(methods_cnt + 1, sizeof(JSFunctionSpec));
 
 					/* Add methods */
 					hvlen = hv_iterinit(methods_hv);
@@ -677,7 +795,7 @@ PCB_AddPerlClass(PCB_Context *context, char *classname, SV *constructor, SV *met
 								spec = &jsmethods[idx];
 								/* Woohoo, code reference */
 
-								spec->name = (char *) calloc(strlen(keyname), sizeof(char));
+								spec->name = (char *) calloc(strlen(keyname)+1, sizeof(char));
 								spec->name = strcpy((char *)spec->name, keyname);
 		
 
@@ -693,7 +811,7 @@ PCB_AddPerlClass(PCB_Context *context, char *classname, SV *constructor, SV *met
 
 								pmethod = (PCB_Method *) calloc(1, sizeof(PCB_Method));
 
-								pmethod->js_native_name = (char *) calloc(strlen(keyname), sizeof(char));
+								pmethod->js_native_name = (char *) calloc(strlen(keyname)+1, sizeof(char));
 								pmethod->js_native_name = strcpy(pmethod->js_native_name, keyname);
 								pmethod->pl_func_reference = svelem;
 								pmethod->next = perl_class->methods;
@@ -713,10 +831,11 @@ PCB_AddPerlClass(PCB_Context *context, char *classname, SV *constructor, SV *met
 		}
 
 		perl_class->jsclass = jsclass;
+
 		perl_class->base_obj = JS_InitClass(cx, JS_GetGlobalObject(cx), NULL, perl_class->jsclass, PCB_InstancePerlClassStub, 0, NULL, jsmethods, NULL, NULL);
 		if(perl_class->base_obj == NULL) {
+            warn("perl_class->base_obj == NULL");
 		}
-
 		perl_class->next = context->class_list;
 	
 		context->class_list = perl_class;
@@ -831,6 +950,7 @@ SVToJSVAL(JSContext *cx, JSObject *obj, SV *ref, jsval *rval) {
 					SVToJSVAL(cx, obj, keyval, &elem);
 
 					if(!JS_DefineProperty(cx, new_obj, keyname, elem, NULL, NULL, JSPROP_ENUMERATE)) {
+                        warn("Could not create property %%",keyval);
 					}
 				}
 
@@ -859,7 +979,7 @@ SVToJSVAL(JSContext *cx, JSObject *obj, SV *ref, jsval *rval) {
 			*rval = PRIVATE_TO_JSVAL(ref);
 		} else if(type == SVt_PV || type == SVt_IV || type == SVt_NV || type == SVt_RV) {
 			/* Not very likely to return a reference to a primitive type, but we need to support that aswell */
-			
+		    warn("returning references to primitive types is not supported yet");	
 		}
 	}
 
@@ -878,9 +998,14 @@ JSVALToSV(JSContext *cx, JSObject *obj, jsval v, SV** sv)
             sv_setnv(*sv, *JSVAL_TO_DOUBLE(v));
         } else if(JSVAL_IS_STRING(v)){
             sv_setpv(*sv, JS_GetStringBytes(JSVAL_TO_STRING(v)));
+        } else if(JSVAL_IS_BOOLEAN(v)) {
+            if (JSVAL_TO_BOOLEAN(v)) {
+                *sv = &PL_sv_yes;
+            } else {
+	        *sv = &PL_sv_no;
+            }
         } else {
-
-            warn("Unknown primitive type");
+            croak("Unknown primitive type");
         }
     } else {
 		if(JSVAL_IS_OBJECT(v)) {
@@ -932,7 +1057,17 @@ JSARRToSV(JSContext *cx, JSObject *object)
 				av_push(av, newSVnv(*JSVAL_TO_DOUBLE(elem)));
 			} else if(JSVAL_IS_STRING(elem)) {
 				av_push(av, newSVpv(JS_GetStringBytes(JSVAL_TO_STRING(elem)), 0));
-			} 
+            } else if(JSVAL_IS_BOOLEAN(elem)) {
+                if (JSVAL_TO_BOOLEAN(elem)) {
+                    av_push(av, &PL_sv_yes);
+                } else {
+                    av_push(av, &PL_sv_no);
+                }
+            } else {
+                croak("Unkown primitive type");
+            }
+
+
 		} else {
 			if(JSVAL_IS_OBJECT(elem)) {
 				JSObject *lobject = JSVAL_TO_OBJECT(elem);
@@ -985,7 +1120,16 @@ JSHASHToSV(JSContext *cx, JSObject *object)
 					hv_store(hv, js_key, strlen(js_key), newSVnv(*JSVAL_TO_DOUBLE(value)), 0);
 				} else if(JSVAL_IS_STRING(value)) {
 					hv_store(hv, js_key, strlen(js_key), newSVpv(JS_GetStringBytes(JSVAL_TO_STRING(value)), 0), 0);
-				} 
+                } else if(JSVAL_IS_BOOLEAN(value)) {
+                    if (JSVAL_TO_BOOLEAN(value)) {
+                        hv_store(hv, js_key, strlen(js_key),  &PL_sv_yes, 0);
+                    } else {
+                        hv_store(hv, js_key, strlen(js_key),  &PL_sv_no, 0);
+                    }
+                } else {
+                    croak("Unknown primitive type");
+                }
+
 			} else {
 				if(JSVAL_IS_OBJECT(value)) {
 					JSObject *lobject = JSVAL_TO_OBJECT(value);
@@ -1176,6 +1320,9 @@ jsc_BindPerlClassImpl(cx, classname, constructor, methods, properties, package, 
 		if(SvTRUE(package) && SvPOK(package)) {
 			pkname = SvPV_nolen(package);
 		}
+                else {
+                    croak("No package specified");
+                }
 
 		PCB_AddPerlClass(cx, classname, constructor, methods, properties, SvIV(flags), pkname);
 		RETVAL = 1;
@@ -1196,7 +1343,7 @@ jsc_BindPerlObject(cx, name, object)
 				char	 	*pname = HvNAME(stash);
 
 				if(!(pjsc = PCB_GetClassByPackage(cx, pname))) {
-					croak("Missing class definition");
+					croak("Missing class definition for %_",object);
 				}
 
 				SvREFCNT_inc(object);

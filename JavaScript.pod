@@ -64,6 +64,10 @@ I<JS_PROP_READONLY>
 
 Sets that an objects property can't be set from JavaScript
 
+I<JS_PROP_ACCESSOR>
+
+Access to this property is by method calls.
+
 I<JS_CLASS_NO_INSTANCE>
 
 Sets that instances of this class can't be created from JavaScript
@@ -174,7 +178,22 @@ Example:
    constructor => sub { return new Foo(@_); }, 
    methods => { 
      bar => \&Foo::bar, 
-     baz => \&Foo::baz, }, 
+     baz => \&Foo::baz, 
+   }, 
+   propoperties {
+     propa => {
+         flags  => JS_PROP_ACCESSOR,
+         getter => \&Foo::get_prop_a,
+         setter => \&Foo::set_prop_a,
+     },
+     propb => {
+         flags  => JS_PROP_READONLY | JS_PROP_ACCESSOR,
+         getter => \&Foo:get_prop_b,
+     },
+     propc => {
+         flags  => JS_PROP_READONLY,  # access hash directly
+     },
+   },
    package => 'Foo'
  ); 
 
@@ -268,17 +287,11 @@ Executes the precompiled script an returns the result of the last statement in i
 
 JavaScript.pm has a mailing list at perl.org. 
 
-You may subscribe by sending an empty email to perl-javascript-subscribe@perl.org (NOTE!! this is currently not working)
-
-=head2 Website
-
-JavaScript.pm has a website at http://labs.contiller.se/JavaScript/
-
-=head2 IRC
-
-Channel #javascript.pm on irc.infobot.org
+You may subscribe by sending an empty email to perl-javascript-subscribe@perl.org
 
 =head1 THANKS
+
+Joost Diepenmaat for fixing lots of stuff.
 
 Mozilla Crew and Netscape for excellent SpiderMonkey JS engine.
 
@@ -288,12 +301,14 @@ Mozilla Crew and Netscape for excellent SpiderMonkey JS engine.
 
 Doesn't handle memory issues very well atm.
 
-=head1 AUTHOR
+=head1 AUTHOR(s)
 
-Claes Jacobsson, Contiller AB, claes@contiller.se
+Claes Jacobsson, claesjac@cpan.org
+
+Joost Diepenmaat, jdiepen@cpan.org
 
 =head1 COPYRIGHT
 
-JavaScript.pm is Copyright 2001 Claes Jacobsson, Contiller AB. All right reserved. 
+JavaScript.pm is Copyright 2001-2005 Claes Jacobsson. All rights reserved. 
 
 JavaScript.pm is free software; you may redistribute it and/or modify it under the same terms as Perl itself.

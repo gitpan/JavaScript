@@ -17,3 +17,16 @@ Revision history for Perl extension JavaScript.
 	- Fixed issues with package
 	- Fixed return from call
 	- Brought docs up to sync with implementation
+
+0.53 Fri Mar 18 19:49:25 CET 2005 (Joost Diepenmaat)
+        - Added JS_THREADSAFE define, which fixed bug on perl 5.8.5
+          thread-multi linux
+        - added tests for debian spidermonkey libs (debian users can
+          now do "apt-get install libsmjs-dev" and compile the module)
+        - Added JS_PROP_ACCESSOR
+        - Added conversion of boolean values from JS to Perl
+        - moved JS_THREADSAFE to Makefile.PL and made code handle handle
+          both cases (though it appears to be mandatory to get the code
+          to run on perl 5.8.6 threaded and unthreaded)
+        - Fixed a couple of alloc()s
+    
