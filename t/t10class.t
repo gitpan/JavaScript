@@ -18,7 +18,7 @@ use Test;
 use Data::Dumper qw(Dumper);
 
 # How many tests
-BEGIN { plan tests => 4 };
+BEGIN { plan tests => 5};
 
 # Load JavaScript module
 use JavaScript;
@@ -41,13 +41,14 @@ $context->bind_class(
 		'bar' => \&Foo::bar,
 		'baz' => \&Foo::baz,
 	},
-	package => 'Foo'
+	package => 'Foo',
 );
+
+ok(1);
 
 $context->eval(q!
 obj = new Foo();
 obj.bar();
-obj.baz();
 !);
 
 ok(1);

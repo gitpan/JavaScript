@@ -10,3 +10,10 @@ Revision history for Perl extension JavaScript.
 0.51  Thu Jul 26 12:01:00 2001
 	- Changed new_context to create_context to match documentation
 	- Changed create_context to not try and take named arguments
+
+0.52  Sat Aug 11 22:47:00 2001
+	- Added can method to JavaScript::Context
+	- Removed the need of passing the JSClass name to bind_object
+	- Fixed issues with package
+	- Fixed return from call
+	- Brought docs up to sync with implementation

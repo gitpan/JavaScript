@@ -48,11 +48,10 @@ typedef struct PCB_Property PCB_Property;
 
 struct PCB_Class {
 	char			*classname;
-	SV				*constructor;
+	SV			*constructor;
 	JSClass			*jsclass;
 	JSObject		*base_obj;
 	char			*package;
-
 	PCB_Method		*methods;
 	struct PCB_Class	*next;
 	PCB_Property		*properties;
@@ -68,9 +67,17 @@ struct PCB_Context {
 	PCB_Class		*class_list;
 	SV 			*error;
 	struct PCB_Context	*next;		/* Pointer to the next created context */
+	struct PCB_Runtime	*rt;
 };
 
 typedef struct PCB_Context PCB_Context;
+
+struct PCB_Runtime {
+	JSRuntime	*rt;
+	PCB_Context	*list;
+};
+
+typedef struct PCB_Runtime PCB_Runtime;
 
 /* Structure that keeps precompiled strict */
 struct PCB_Script {
@@ -79,8 +86,6 @@ struct PCB_Script {
 };
 
 typedef struct PCB_Script PCB_Script;
-
-static PCB_Context *context_list = NULL;
 
 /* Defines */
 static JSBool PCB_GetProperty(JSContext *, JSObject *, jsval, jsval *);
@@ -105,9 +110,9 @@ PCB_NewContext() {
 
 static PCB_Context *
 PCB_GetContext(JSContext *cx) {
-	PCB_Context *context =  context_list;
+	return (PCB_Context *) JS_GetContextPrivate(cx);
 
-	while ( context ) {
+/*	while ( context ) {
 		if(context->cx == cx) {
 			return context;
 		}
@@ -115,7 +120,7 @@ PCB_GetContext(JSContext *cx) {
 		context = context->next;
 	}
 
-	return NULL;
+	return NULL; */
 }
 
 static PCB_Function *
@@ -139,7 +144,7 @@ PCB_GetClass(PCB_Context *cx, char *name) {
 	PCB_Class *ret = NULL;
 
 	ret = cx->class_list;
-	
+
 	while(ret) {
 		if(strcmp(ret->classname, name) == 0) {
 			return ret;
@@ -315,6 +320,7 @@ PCB_InstancePerlClassStub(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 	fun = JS_ValueToFunction(cx, argv[-2]);
 
 	if(!(context = PCB_GetContext(cx))) {
+
 		croak("Can't get context\n");
 	}
 
@@ -327,7 +333,6 @@ PCB_InstancePerlClassStub(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 
 	/* Check if we are allowed to instanciate this class */
 	if((pl_class->flags & JS_CLASS_NO_INSTANCE)) {
-
 		JS_ReportError(cx, "Class '%s' can't be instanciated", jsclass->name);
 		return JS_FALSE;
 	}
@@ -364,10 +369,8 @@ PCB_InstancePerlClassStub(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 			FREETMPS ;
 			LEAVE ;
 		} else {
-			croak("callback doesn't hold code reference 3");
 		}
 	} else {
-		croak("callback doesn't hold reference 4");
 	}
 
     return JS_TRUE;
@@ -378,11 +381,12 @@ PCB_MethodCallPerlClassStub(JSContext *cx, JSObject *obj, uintN argc, jsval *arg
 	PCB_Class		*pl_class;
 	PCB_Context		*context;
 	PCB_Method		*pl_method;
-    JSFunction		*fun;
-	I32				rcount;
-	int				arg;
-	SV				*sv;
+        JSFunction		*fun;
+	I32			rcount;
+	int			arg;
+	SV			*sv;
 	JSClass			*jsclass;
+	SV *priv = (SV *) JS_GetPrivate(cx, obj);
 
 	dSP ;
 
@@ -403,13 +407,14 @@ PCB_MethodCallPerlClassStub(JSContext *cx, JSObject *obj, uintN argc, jsval *arg
 		croak("Can't find method\n");
 	}
 
+
 	if(SvROK(pl_method->pl_func_reference)) {
 		if(SvTYPE(SvRV(pl_method->pl_func_reference)) == SVt_PVCV) {
 			ENTER ;
 			SAVETMPS ;
 			PUSHMARK(SP) ;
 
-			XPUSHs((SV *) JS_GetPrivate(cx, obj));
+			XPUSHs(priv);
 
 			for (arg = 0; arg < argc; arg++) {
 				sv = sv_newmortal();
@@ -426,8 +431,14 @@ PCB_MethodCallPerlClassStub(JSContext *cx, JSObject *obj, uintN argc, jsval *arg
 			if(rcount) {
 				while(rcount--) {
 					SV *rsv = POPs;
-				
-					SVToJSVAL(cx, obj, rsv, rval);
+
+					if(SvROK(rsv)) {
+						if(SvRV(rsv) != SvRV(priv)) {
+							SVToJSVAL(cx, obj, rsv, rval);
+						}
+					} else {
+						SVToJSVAL(cx, obj, rsv, rval);
+					}
 				}
 			} else {
 				croak("no support for returning arrays yet");
@@ -494,6 +505,8 @@ PCB_GetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
 	return JS_TRUE;
 }
 
+
+
 static JSBool
 PCB_SetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
 	PCB_Context *context;
@@ -554,6 +567,8 @@ PCB_AddPerlClass(PCB_Context *context, char *classname, SV *constructor, SV *met
 	if(context != NULL) {
 		cx = context->cx;
 
+		SvREFCNT_inc(constructor);
+
 		perl_class = (PCB_Class *) calloc(1, sizeof(PCB_Class));
 
 		perl_class->classname = (char *) calloc(strlen(classname) + 1, sizeof(char));
@@ -566,8 +581,8 @@ PCB_AddPerlClass(PCB_Context *context, char *classname, SV *constructor, SV *met
 		perl_class->package = NULL;
 
 		if(pkname != NULL) {
-			perl_class->package = (char *) calloc(strlen(pkname), sizeof(char));
-			strcpy(perl_class->package, pkname);
+			perl_class->package = (char *) calloc(strlen(pkname) + 1, sizeof(char));
+			perl_class->package = strcpy(perl_class->package, pkname);
 		}
 
 		strcpy(perl_class->classname, classname);
@@ -995,6 +1010,8 @@ JSHASHToSV(JSContext *cx, JSObject *object)
 /* Error rapporting */
 static void
 PCB_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report) {
+	fprintf(stderr, "%s at line %d: %s\n", message, report->lineno, report->linebuf);
+
 /*	PCB_Context *context;
 	SV	    *errfunc;
 
@@ -1020,7 +1037,6 @@ PCB_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report) {
 /* Calls a Perl function which is bound to a JavaScript function */
 void
 InitContexts() {
-	context_list = NULL;
 }
 
 MODULE = JavaScript		PACKAGE = JavaScript			PREFIX = js_
@@ -1040,42 +1056,45 @@ InitContexts();
 
 MODULE = JavaScript		PACKAGE = JavaScript::Runtime	PREFIX = jsr_
 
-JSRuntime *
+PCB_Runtime *
 jsr_CreateRuntime(maxbytes)
 	int maxbytes
 	PREINIT:
-	JSRuntime *rt;
+		PCB_Runtime *rt;
 	CODE:
-	{
-		rt = JS_NewRuntime(maxbytes);
+		Newz(1, rt, 1, PCB_Runtime);
 		if(rt == NULL) {
 			croak("Can't create runtime");
 			XSRETURN_UNDEF;
 		}
 
+		rt->rt = JS_NewRuntime(maxbytes);
+		if(rt->rt == NULL) {
+			croak("Can't create runtime");
+			XSRETURN_UNDEF;
+		}
+
 		RETVAL = rt;
-	}
 	OUTPUT:
-	RETVAL
+		RETVAL
 
 void
 jsr_DestroyRuntime(rt)
-	JSRuntime *rt
+	PCB_Runtime *rt
 
 	CODE:
-	{
 		if(SvREFCNT(ST(0)) == 1) {
-			JS_DestroyRuntime(rt);
+			JS_DestroyRuntime(rt->rt);
+			Safefree(rt);
 		} else {
 			warn("To many references to runtime");
 		}
-	}
 
 MODULE = JavaScript		PACKAGE = JavaScript::Context	PREFIX = jsc_
 
 PCB_Context *
 jsc_CreateContext(rt, stacksize)
-	JSRuntime	*rt;
+	PCB_Runtime	*rt;
 	int		stacksize;
 	PREINIT:
 		PCB_Context	*cx;
@@ -1083,7 +1102,7 @@ jsc_CreateContext(rt, stacksize)
 	CODE:
 		Newz(1, cx, 1, PCB_Context);
 
-		cx->cx = JS_NewContext(rt, stacksize);
+		cx->cx = JS_NewContext(rt->rt, stacksize);
 
 		if(cx->cx == NULL) {
 			Safefree(cx);
@@ -1097,9 +1116,11 @@ jsc_CreateContext(rt, stacksize)
 		/* Add context to context list */
 		cx->func_list = NULL;
 		cx->class_list = NULL;
-		cx->next = context_list;
-	        context_list = cx;
+		cx->rt = rt;
+		cx->next = rt->list;
+	        rt->list = cx;
 
+		JS_SetContextPrivate(cx->cx, (void *)cx);
 		JS_SetErrorReporter(cx->cx, PCB_ErrorReporter);
 
 		RETVAL = cx;
@@ -1149,31 +1170,32 @@ jsc_BindPerlClassImpl(cx, classname, constructor, methods, properties, package, 
 	SV		*package;
 	SV		*flags;
 
+	PREINIT:
+		char	*pkname = NULL;
 	CODE:
-	{
-		char *pkname = NULL;
-
 		if(SvTRUE(package) && SvPOK(package)) {
 			pkname = SvPV_nolen(package);
 		}
-		SvREFCNT_inc(constructor);
 
 		PCB_AddPerlClass(cx, classname, constructor, methods, properties, SvIV(flags), pkname);
-	}
+		RETVAL = 1;
+	OUTPUT:
+		RETVAL
 
 int
-jsc_BindPerlObject(cx, name, classname, object)
+jsc_BindPerlObject(cx, name, object)
 	PCB_Context	*cx;
 	char		*name;
-	char		*classname;
 	SV		*object;
 	CODE:
 		if(SvTYPE(object) == SVt_RV) {
 			if(sv_isobject(object)) {
 				PCB_Class	*pjsc;
 				JSObject	*jsobj;
-	
-				if(!(pjsc = PCB_GetClass(cx, classname))) {
+				HV		*stash = SvSTASH(SvRV(object));
+				char	 	*pname = HvNAME(stash);
+
+				if(!(pjsc = PCB_GetClassByPackage(cx, pname))) {
 					croak("Missing class definition");
 				}
 
@@ -1197,8 +1219,8 @@ jsc_BindPerlObject(cx, name, classname, object)
 
 jsval 
 jsc_EvaluateScriptImpl(cx, script)
-	PCB_Context	*cx
-	char		*script
+	PCB_Context	*cx;
+	char		*script;
 	PREINIT:
 		jsval	rval;
 	CODE:
@@ -1244,6 +1266,26 @@ jsc_CallFunctionImpl(cx, func_name, args)
 		RETVAL = rval;
 	OUTPUT:
 		RETVAL
+
+int
+jsc_CanFunctionImpl(cx, func_name)
+	PCB_Context	*cx;
+	char		*func_name;
+	PREINIT:
+		jsval	vl;
+	CODE:
+		if(JS_GetProperty(cx->cx, JS_GetGlobalObject(cx->cx), func_name, &vl)) {
+			if(JS_ValueToFunction(cx->cx, vl) != NULL) {
+				RETVAL = 1;
+			} else {
+				RETVAL = 0;
+			}
+		} else {
+			RETVAL = 0;
+		}
+	OUTPUT:
+		RETVAL
+
 
 MODULE = JavaScript		PACKAGE = JavaScript::Script	PREFIX = jss_
 

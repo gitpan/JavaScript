@@ -11,3 +11,8 @@ t/t00basic.t
 t/t10class.t
 t/t20call.t
 t/t30script.t
+t/t40error.t
+t/t50object.t
+t/t60can.t
+t/t70file.js
+t/t70file.t

@@ -1,5 +1,5 @@
 TYPEMAP
-JSRuntime *	T_PTRREF
+PCB_Runtime *	T_PTRREF
 PCB_Context *	T_PTRREF
 PCB_Script *	T_PTRREF
 jsval		jsval

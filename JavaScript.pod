@@ -11,7 +11,7 @@ JavaScript - Perl extension for executing embedded JavaScript
     my $runtime = new JavaScript::Runtime;
     my $context = $runtime->create_context();
 
-    $context->bind_function( name => 'write', code => sub { print @_ } );
+    $context->bind_function( name => 'write', func => sub { print @_ } );
 
     $rval = $context->eval(q!
       function strange(out, times) {
@@ -96,7 +96,7 @@ All execution of JavaScript is done in a context.
 
 =head2 Methods:
 
-I<SCALAR> = I<JavaScript::Context>->eval($code)
+I<SCALAR> = I<JavaScript::Context>->eval($code);
 
 Compiles and evaluates JS code supplied in $code. Returns the the value of the last JS statement.
 
@@ -108,6 +108,12 @@ Example:
    c = a * b;
    c;
  !);
+
+-----
+
+I<SCALAR> = I<JavaScript::Context>->eval_file($path)
+
+Compiles and evaulates JS code in the file with the path in $path. Returns the value of the last JS statement.
 
 -----
 
@@ -124,6 +130,18 @@ Example:
  !);
 
  $ret = $context->call("multiply", 10, 20);
+
+-----
+
+I<SCALAR> = I<JavaScript::Context>->can($func)
+
+Returns a true value if there is a function named $func in the context. Otherwize, it returns false.
+
+Example:
+
+ if($context->can('on_update')) {
+   $context->call('on_update', $page);
+ }
 
 -----
 
@@ -144,7 +162,7 @@ I<JavaScript::Context>->bind_class( name => $name, constr => $sub [,methods => {
 
 Creates a new JS Class in the context, which is actually implemented in perl.
 Argument I<name> is the name of the new class which can be use in JS using "var obj = new Foo()". 
-Argument I<constr> must be a code reference which is called when the instance is created (note, does not send package as first argument so C<sub { return new Foo(@_) }> is recommended). Argument methods is a hash reference where each key is the name of the method and the value is a code reference to the native method to call. 
+Argument I<constructor> must be a code reference which is called when the instance is created (note, does not send package as first argument so C<sub { return new Foo(@_) }> is recommended). Argument methods is a hash reference where each key is the name of the method and the value is a code reference to the native method to call. 
 Argument I<properties> is a hash reference containing names of properties and how they can are treated (See constants exported by JavaScript package), these can be OR'd. 
 Argument I<flags> contains flags for this class, only supported now is I<JS_CLASS_NO_INSTANCE> if this class can't be instanciated. 
 Argument I<package> is the name of the perl package this class represents, must be supplied if you want to be able to sent objects when using call.
@@ -153,7 +171,7 @@ Example:
 
  $context->bind_class(
    name => 'Foo', 
-   constr => sub { return new Foo(@_); }, 
+   constructor => sub { return new Foo(@_); }, 
    methods => { 
      bar => \&Foo::bar, 
      baz => \&Foo::baz, }, 
@@ -211,7 +229,7 @@ Compiles a piece of code and returns a new JavaScript::Script object containing 
 
 NOT YET 100% IMPLEMENTED!
 
-I<JavaScript::context>->set_error_handler($sub);
+I<JavaScript::Context>->set_error_handler($sub);
 
 Sets the error callback in the context to be the subruntine referenced by $sub. The subrutine wil be passed the following arguments in this order:
 

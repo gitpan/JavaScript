@@ -33,13 +33,31 @@ sub eval {
 	return $rval;
 }
 
+sub eval_file {
+	my ($self, $file) = @_;
+	open(JS, "<$file") || die "$!\n";
+	local($/);
+	my $js = <JS>;
+	close(JS);
+
+	my $rval = EvaluateScriptImpl($self->{impl}, $js);
+
+	return $rval;
+}
+
 sub call {
 	my $self = shift;
 	my $func_name = shift;
 	my $args = [];
 	push(@$args, $_) foreach(@_);
 	my $rval = CallFunctionImpl($self->{impl}, $func_name, $args);
-	rerturn $rval;
+	return $rval;
+}
+
+sub can {
+	my $self = shift;
+	my $func_name = shift;
+	return CanFunctionImpl($self->{impl}, $func_name);
 }
 
 # Functions for binding perl stuff into JS namespace
@@ -101,18 +119,18 @@ sub bind_class {
 		$args{flags} = 0;
 	}
 
-	unless(exists $args{blessed}) {
-		$args{blessed} = "";
+	unless(exists $args{package}) {
+		$args{package} = undef;
 	}
 
-	my $rval = BindPerlClassImpl($self->{impl}, $args{name}, $args{constructor}, $args{methods}, $args{properties}, $args{blessed}, $args{flags});
+	my $rval = BindPerlClassImpl($self->{impl}, $args{name}, $args{constructor}, $args{methods}, $args{properties}, $args{package}, $args{flags});
 	return $rval;
 }
 
 sub bind_object {
-	my ($self, $name, $jsclass, $object) = @_;
+	my ($self, $name, $object) = @_;
 
-	my $rval = BindPerlObject($self->{impl}, $name, $jsclass, $object);
+	my $rval = BindPerlObject($self->{impl}, $name, $object);
 	return $rval;
 }
 
@@ -185,7 +203,7 @@ our @EXPORT = qw(
 	JS_CLASS_NO_INSTANCE
 );
 
-our $VERSION = '0.51';
+our $VERSION = '0.52';
 
 use vars qw($STACKSIZE $MAXBYTES $INITIALIZED);
 
