@@ -1,0 +1,13 @@
+Changes
+MANIFEST
+Makefile.PL
+README
+TODO
+JavaScript.pm
+JavaScript.xs
+JavaScript.pod
+typemap
+t/t00basic.t
+t/t10class.t
+t/t20call.t
+t/t30script.t

@@ -1,0 +1,281 @@
+=head1 NAME
+
+JavaScript - Perl extension for executing embedded JavaScript
+
+=head1 SYNOPSIS
+
+    #!/usr/bin/perl
+  
+    use JavaScript;
+
+    my $runtime = new JavaScript::Runtime;
+    my $context = $runtime->create_context();
+
+    $context->bind_function( name => 'write', code => sub { print @_ } );
+
+    $rval = $context->eval(q!
+      function strange(out, times) {
+        times = Math.abs(times);
+        for(i = 0; i < times; i++) {
+          write(out);
+        }
+      }
+
+      strange("JavaScript.pm rox!", 10);
+
+      undefined;
+    !);
+
+=head1 DESCRIPTION
+
+Always thought JavaScript was for web only? well, think again... 
+
+JavaScript.pm gives you the power of embedded JavaScript in your applications. You can write your subs, classes etc in perl and bind them to the JavaScript engine. Variables are converted between the language automaticlly and you don't have to worry about that.
+
+=head2 Why?
+
+JavaScript is safe. It has no I/O, no IPC and pretty much nothing else except that's it is an easy language  that zillions of developers worldwide knows.
+
+=head2 How?
+
+This is not a JavaScript runtime written in perl, it's simply an interface to libjs from the mozilla crew.
+
+=head1 INSTALL
+
+See F<README> file for more information on installation
+
+=head1 REFERENCE
+
+Some regulations applies to certain values that are passed to the methods. JavaScript identifiers (ie, function names, method names, objects names) must only contain A-Z, a-z, 0-9 and _
+
+=head1 JavaScript
+
+=head2 Importing the module:
+
+use JavaScript qw(:all);
+
+=head2 Constants exported:
+
+I<JS_PROP_PRIVATE> 
+
+Sets that an objects property can't be accessed from JavaScript
+
+I<JS_PROP_READONLY>
+
+Sets that an objects property can't be set from JavaScript
+
+I<JS_CLASS_NO_INSTANCE>
+
+Sets that instances of this class can't be created from JavaScript
+
+=head1 JavaScript::Runtime
+
+Contexts used by your application are maintained in runtimes. So before you can do anything, create a new JavaScript::Runtime object.
+
+=head2 Methods:
+
+I<JavaScript::Runtime> = new($maxbytes)
+
+Creates a new JavaScript::Runtime object under which you can create multiple contexts.
+
+$maxbytes specifies the number of bytes it can allocate before garbage collection is done. 1 MB is used as default.
+
+------
+
+I<JavaScript::Context> = I<JavaScript::Runtime>->create_context($stacksize)
+
+Creates and returns a new JavaScript::Context object in which you can bind classes and functions, evalutate scripts, call JS function and bind perl objects.
+
+$stacksize specifies the the number of bytes to allocate for the stack.
+
+
+
+=head1 JavaScript::Context
+
+All execution of JavaScript is done in a context.
+
+=head2 Methods:
+
+I<SCALAR> = I<JavaScript::Context>->eval($code)
+
+Compiles and evaluates JS code supplied in $code. Returns the the value of the last JS statement.
+
+Example:
+
+ $rval = $context->eval(q!
+   a = 10;
+   b = 20;
+   c = a * b;
+   c;
+ !);
+
+-----
+
+I<SCALAR> = I<JavaScript::Context>->call($func, ...);
+
+Calls a JS function with name in $func. Rest of parameters are passed to the JS function.
+
+Example:
+
+ $context->eval(q!
+   function multiply(a, b) {
+     return a, b;
+   }
+ !);
+
+ $ret = $context->call("multiply", 10, 20);
+
+-----
+
+I<JavaScript::Context>->bind_function( name => $name, func => $sub )
+
+The bind_function method binds a perl function to the JS namespace. The argument 'name' must only contain A-Z, a-z, 0-9 and _. Argument 'func' is a reference to a subroutine.
+
+Example:
+
+ $context->bind_function(
+   name => 'writeln', 
+   func => sub { print @_ . "\n"; }
+ );
+
+-----
+
+I<JavaScript::Context>->bind_class( name => $name, constr => $sub [,methods => { ... }, properties => { ... }, package => $pkg, flags => $flags ]);
+
+Creates a new JS Class in the context, which is actually implemented in perl.
+Argument I<name> is the name of the new class which can be use in JS using "var obj = new Foo()". 
+Argument I<constr> must be a code reference which is called when the instance is created (note, does not send package as first argument so C<sub { return new Foo(@_) }> is recommended). Argument methods is a hash reference where each key is the name of the method and the value is a code reference to the native method to call. 
+Argument I<properties> is a hash reference containing names of properties and how they can are treated (See constants exported by JavaScript package), these can be OR'd. 
+Argument I<flags> contains flags for this class, only supported now is I<JS_CLASS_NO_INSTANCE> if this class can't be instanciated. 
+Argument I<package> is the name of the perl package this class represents, must be supplied if you want to be able to sent objects when using call.
+ 
+Example:
+
+ $context->bind_class(
+   name => 'Foo', 
+   constr => sub { return new Foo(@_); }, 
+   methods => { 
+     bar => \&Foo::bar, 
+     baz => \&Foo::baz, }, 
+   package => 'Foo'
+ ); 
+
+ $context->eval(q!
+   var obj => new Foo();
+   obj.bar("Hello World");
+   obj.baz("Bye Bye World");
+   obj = undefined;
+ !);
+
+ $context->eval(q!
+   function func(obj) { 
+     obj.bar("No World"); 
+   }!
+ );
+ 
+ $context->call("func", new Foo());
+
+-----
+
+I<JavaScript::Context>->bind_object($name, $object);
+
+Creates a new JS object in the context with the name supplied in $name. It checks what $object is blessed to an uses that to determine the type of JS class it represents. The class must be bound before importion can occur and the package argument must be supplied.
+
+Example:
+
+ $context->bind_class(
+   name => 'Response', 
+   constr => sub { return new Response(); }, 
+   methods => { write => \&Response::write },
+   flags => JS_CLASS_NO_INSTANCE 
+ );
+
+ my $stdout = new Response("STDOUT");
+ my $stderr = new Response("STDERR");
+
+ $context->bind_object('Stdout', $stdout);
+ $context->bind_object('Stderr', $stderr);
+
+ $context->eval(q!
+   Stdout.write("Hello World\n");
+   Stderr.write("Bye Bye world\n");
+ !);
+
+-----
+
+I<JavaScript::Script> = I<JavaScript::Context>->compile($code);
+
+Compiles a piece of code and returns a new JavaScript::Script object containing the precompiled script.
+
+------
+
+NOT YET 100% IMPLEMENTED!
+
+I<JavaScript::context>->set_error_handler($sub);
+
+Sets the error callback in the context to be the subruntine referenced by $sub. The subrutine wil be passed the following arguments in this order:
+
+ message - The error in plaintext
+ line number - On which line number the error occured
+ line buffer - The line in plaintext on which the error occured
+
+Example:
+
+ $context->set_error_handler(sub {
+   my ($message, $lineno, $linebuff) = @_;
+
+   die "Error at line: $lino\nMessage is: $message\nSource is: $linebuff\n";
+ });
+
+
+ $context->eval(q!
+  for(i = ; i <40; i+++) {
+  }
+ !);
+
+=head1 JavaScript::Script
+
+Precompiled scripts goes here. Once a script is compiled, it can be run over and over again.
+
+=head2 Methods:
+
+I<SCALAR> = I<JavaScript::Script>->exec();
+
+Executes the precompiled script an returns the result of the last statement in it.
+
+
+=head1 SUPPORT
+
+=head2 Mailing list
+
+JavaScript.pm has a mailing list at perl.org. 
+
+You may subscribe by sending an empty email to perl-javascript-subscribe@perl.org (NOTE!! this is currently not working)
+
+=head2 Website
+
+JavaScript.pm has a website at http://labs.contiller.se/JavaScript/
+
+=head2 IRC
+
+Channel #javascript.pm on irc.infobot.org
+
+=head1 THANKS
+
+Mozilla Crew and Netscape for excellent SpiderMonkey JS engine.
+
+#perl on irc.infobot.org for feedback and help.
+
+=head1 BUGS
+
+Doesn't handle memory issues very well atm.
+
+=head1 AUTHOR
+
+Claes Jacobsson, Contiller AB, claes@contiller.se
+
+=head1 COPYRIGHT
+
+JavaScript.pm is Copyright 2001 Claes Jacobsson, Contiller AB. All right reserved. 
+
+JavaScript.pm is free software; you may redistribute it and/or modify it under the same terms as Perl itself.

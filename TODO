@@ -1,0 +1,12 @@
+====
+TODO
+====
+
+- Lots?
+
+====
+BUGS
+====
+
+- Does not free or destroy contexts yet
+- Probablly a lot of memory leaks

@@ -1,0 +1,12 @@
+TYPEMAP
+JSRuntime *	T_PTRREF
+PCB_Context *	T_PTRREF
+PCB_Script *	T_PTRREF
+jsval		jsval
+
+OUTPUT
+jsval
+	{
+		/* Convert js value to perl */
+		JSVALToSV(cx->cx, JS_GetGlobalObject(cx->cx), $var, &$arg);
+	}

@@ -1,0 +1,71 @@
+INTRODUCTION:
+
+JavaScript.pm - Execute JavaScript from within Perl
+
+JavaScript.pm is an interface to the SpiderMonkey JS engine. It lets you execute JS code, 
+call JS functions, bind Perl classes to JS, import Perl functions to JS, precompile and exeute 
+scripts among many other things. It does conversion between Perl and JS datatypes.
+
+Example:
+
+use JavaScript;
+
+$rt = new JavaScript::Runtime();
+$cx = $rt->create_context();
+$cx->eval(q!
+function test(a, b, c) {
+	return a * b * c;
+}
+!);
+
+print "4 * 5 * 2 = " . $cx->call("test", 4, 5, 2);
+
+
+-------------
+INSTALLATION:
+
+To install JavaScript.pm, make sure you have libjs installed. Otherwize, grab a recent one from 
+ftp://ftp.mozilla.org/pub/js. The module is tested with 1.5 and later.
+
+Once libjs is installed and jsapi.h and other necessery headers can be found do:
+
+> perl Makefile.PL
+> make
+> make test
+> make install
+
+
+--------------
+DOCUMENTATION:
+
+usage reference is available as POD, simply do
+
+> perldoc JavaScript
+
+
+------------
+INFORMATION:
+
+= Official website is http://labs.contiller.se/JavaScript/
+= Support is available on IRC on channel #javascript.pm on irc.infobot.org
+= Mailing list is on the way, perl-javascript@perl.org, send an empty email to perl-javascript-subscribe@perl.org
+
+Please send questions/patches/docs/comments to "Claes Jacobsson", CLAESJAC@cpan.org
+
+
+-------
+THANKS:
+
+SpiderMonkey creators at Netscape and Mozilla.org
+
+#perl on irc.infobot.org for support and feedback (ingy, Addi, sky, Co-Kane, sheriff_p, crab and everyone else i forgot to mention).
+
+
+COPYRIGHT:
+----------
+
+Copyright (c) 2001, Claes Jacobsson, All Rights Reserved.
+JavaScript.pm is free software; you may redistribute it and/or modify 
+it under the same conditions as perl itself.
+
+
