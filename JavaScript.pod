@@ -74,7 +74,7 @@ Contexts used by your application are maintained in runtimes. So before you can 
 
 =head2 Methods:
 
-I<JavaScript::Runtime> = new($maxbytes)
+I<JavaScript::Runtime> = new JavaScript::Runtime($maxbytes)
 
 Creates a new JavaScript::Runtime object under which you can create multiple contexts.
 

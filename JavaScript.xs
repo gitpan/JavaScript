@@ -66,7 +66,7 @@ struct PCB_Context {
 	JSContext		*cx;	/* The JavaScript context which this instance belongs to */
 	PCB_Function		*func_list;	/* Pointer to the first callback item that is registered */
 	PCB_Class		*class_list;
-	SV 			*error_callback;
+	SV 			*error;
 	struct PCB_Context	*next;		/* Pointer to the next created context */
 };
 
@@ -708,21 +708,6 @@ PCB_AddPerlClass(PCB_Context *context, char *classname, SV *constructor, SV *met
 	}
 }
 
-/* Perl Callback for error reporting */
-static void
-PCB_SetErrorCallback(JSContext *cx, SV *callback) {
-	PCB_Context *context;
-
-	context = PCB_GetContext(cx);
-
-	if(context != NULL) {
-		SvREFCNT_inc(callback);
-		context->error_callback = callback;
-	} else {
-		croak("Can't get context\n");
-	}
-}
-
 /* Perl Callback functions */
 static void
 PCB_AddCallbackFunction(PCB_Context *context, char *name, SV *pl_func) {
@@ -1010,7 +995,26 @@ JSHASHToSV(JSContext *cx, JSObject *object)
 /* Error rapporting */
 static void
 PCB_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report) {
-	fprintf(stderr, "Error: %s on line %d\n", message, report->lineno);
+/*	PCB_Context *context;
+	SV	    *errfunc;
+
+	dSP;
+
+	context = PCB_GetContext(cx);
+
+	if(context != null) {
+		errfunc = context->error;
+
+		ENTER ;
+		SAVETMPS ;
+		PUSHMARK(SP) ;
+		XPUSHs(newSVpv(message, strlen(message));
+		XPUSHs(newSViv(report->lineno);
+		XPUSHs(newSVpv(report->linebuf, strlen(report->linebuf));
+		PUTBACK;
+
+		perl_call_sv(SvRV(context->error), G_SCALAR);
+	} */
 }
 
 /* Calls a Perl function which is bound to a JavaScript function */
@@ -1103,7 +1107,7 @@ jsc_CreateContext(rt, stacksize)
 	RETVAL
 
 void
-jsc_SetErrorCallback(cx, function)
+jsc_SetErrorCallbackImpl(cx, function)
 	PCB_Context	*cx;
 	SV		*function;
 
@@ -1112,7 +1116,7 @@ jsc_SetErrorCallback(cx, function)
 			croak("Callback is not a reference\n");
 		} else {
 			if(SvTYPE(SvRV(function)) == SVt_PVCV) {
-				PCB_SetErrorCallback(cx->cx, function);
+				cx->error = function;
 			} else {
 				croak("Callback is not a code reference\n");
 			}

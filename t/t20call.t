@@ -17,8 +17,8 @@ my $runtime = new JavaScript::Runtime();
 ok(1);
 
 # Create a new context
-my $context = $runtime->new_context();
-my $context2 = $runtime->new_context();
+my $context = $runtime->create_context();
+my $context2 = $runtime->create_context();
 ok(1);
 
 $context->eval(q!

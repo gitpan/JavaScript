@@ -118,15 +118,11 @@ sub bind_object {
 
 sub set_error_handler {
 	my $self = shift;
-	my %args = @_;
+	my $sub = shift;
 
-	die "Argument 'type' doesn't exist\n" unless(exists $args{type});
+	die "Argument isn't a CODE reference\n" unless(ref($sub) eq 'CODE');
 
-	if(lc($args{type}) eq 'callback') {
-		die "Argument 'callback' is not a code reference\n" unless(ref($args{callback}) eq 'CODE');
-	} elsif(lc($args{type}) eq 'variable') {
-		die "Argument 'variable' is not a scalar ref\n" unless(ref($args{variable}) eq '');
-	}
+	SetErrorCallbackImpl($self->{impl}, $sub);
 }
 
 sub compile {
@@ -154,10 +150,10 @@ sub DESTROY {
 	my ($self) = @_;
 }
 
-sub new_context {
+sub create_context {
 	my $self = shift;
-	my %attrs = @_;
-	my $stacksize = $JavaScript::STACKSIZE unless(defined $attrs{stacksize});
+	my $stacksize = shift;
+	$stacksize = $JavaScript::STACKSIZE unless(defined($stacksize));
 	my $context = new JavaScript::Context($self->{'impl'}, $stacksize);
 	return $context;
 }
@@ -175,13 +171,6 @@ use AutoLoader;
 
 our @ISA = qw(Exporter DynaLoader);
 
-# Items to export into callers namespace by default. Note: do not export
-# names by default without a very good reason. Use EXPORT_OK instead.
-# Do not simply export all your public functions/methods/constants.
-
-# This allows declaration	use JavaScript ':all';
-# If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
-# will save memory.
 our %EXPORT_TAGS = ( 'all' => [ qw(
 	JS_PROP_PRIVATE 
 	JS_PROP_READONLY	
@@ -196,7 +185,7 @@ our @EXPORT = qw(
 	JS_CLASS_NO_INSTANCE
 );
 
-our $VERSION = '0.5';
+our $VERSION = '0.51';
 
 use vars qw($STACKSIZE $MAXBYTES $INITIALIZED);
 
@@ -210,10 +199,6 @@ BEGIN {
 }
 
 sub AUTOLOAD {
-    # This AUTOLOAD is used to 'autoload' constants from the constant()
-    # XS function.  If a constant is not found then control is passed
-    # to the AUTOLOAD in AutoLoader.
-
     my $constname;
     our $AUTOLOAD;
     ($constname = $AUTOLOAD) =~ s/.*:://;
@@ -247,7 +232,6 @@ bootstrap JavaScript $VERSION;
 1;
 __END__
 
-# Below is the stub of documentation for your module. You better edit it!
 =head1 NAME
 
 JavaScript - Perl extension for executing embedded JavaScript
