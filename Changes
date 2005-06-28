@@ -30,3 +30,5 @@ Revision history for Perl extension JavaScript.
           to run on perl 5.8.6 threaded and unthreaded)
         - Fixed a couple of alloc()s
     
+0.54 Tue Jun 29 11:50:00 CET 2005
+        - Make Makefile.PL play happy games with Gentoo (patch by sungo)

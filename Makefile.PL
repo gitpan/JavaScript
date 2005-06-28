@@ -10,6 +10,13 @@ if($^O eq 'MSWin32') {
 	$define .= " -DXP_UNIX";
 }
 
+my $inc = '';
+
+if(-f "/etc/gentoo-release") {
+	# Gentoo puts libjs in a slightly hidden spot.
+	$inc = '-I/usr/lib/MozillaFirefox/include/js/ -I/usr/lib/MozillaFirefox/';
+}
+
 #test for debian type include files...
 if (-f "/usr/include/smjs/jsapi.h" or -f "/usr/local/include/smjs/jsapi.h") {
     $define .= " -DINCLUDES_IN_SMJS"
@@ -38,7 +45,7 @@ WriteMakefile(
     'LIBS'		=> [$lib], # e.g., '-lm'
     'DEFINE'		=> $define, # e.g., '-DHAVE_SOMETHING'
 	# Insert -I. if you add *.h files later:
-    'INC'		=> '', # e.g., '-I/usr/include/other'
+    'INC'		=> $inc, # e.g., '-I/usr/include/other'
 	# Un-comment this if you add C files to link with later:
     # 'OBJECT'		=> '$(O_FILES)', # link all the C files too
 );

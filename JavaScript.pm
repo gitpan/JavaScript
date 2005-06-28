@@ -216,7 +216,7 @@ our @EXPORT = qw(
 	JS_CLASS_NO_INSTANCE
 );
 
-our $VERSION = '0.53';
+our $VERSION = '0.54';
 
 use vars qw($STACKSIZE $MAXBYTES $INITIALIZED);
 

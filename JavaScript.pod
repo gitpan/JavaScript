@@ -293,6 +293,8 @@ You may subscribe by sending an empty email to perl-javascript-subscribe@perl.or
 
 Joost Diepenmaat for fixing lots of stuff.
 
+sungo for providing Makefile.PL fixes for Gentoo.
+
 Mozilla Crew and Netscape for excellent SpiderMonkey JS engine.
 
 #perl on irc.infobot.org for feedback and help.
