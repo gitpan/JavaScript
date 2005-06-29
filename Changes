@@ -32,3 +32,6 @@ Revision history for Perl extension JavaScript.
     
 0.54 Tue Jun 29 11:50:00 CET 2005
         - Make Makefile.PL play happy games with Gentoo (patch by sungo)
+
+0.55 Wed Jun 30 9:05:00 CET 2005
+        - Fixed error handling (patch by G. Allen Morris III)

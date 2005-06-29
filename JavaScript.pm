@@ -152,7 +152,9 @@ sub set_error_handler {
 
 	die "Argument isn't a CODE reference\n" unless(ref($sub) eq 'CODE');
 
-	SetErrorCallbackImpl($self->{impl}, $sub);
+	$self->{_error_handler} = $sub;
+
+	SetErrorCallbackImpl($self->{impl}, $self->{_error_handler});
 }
 
 sub compile {
@@ -178,6 +180,7 @@ sub new {
 
 sub DESTROY {
 	my ($self) = @_;
+	delete $self->{_error_handler};
 }
 
 sub create_context {
@@ -216,7 +219,7 @@ our @EXPORT = qw(
 	JS_CLASS_NO_INSTANCE
 );
 
-our $VERSION = '0.54';
+our $VERSION = '0.55';
 
 use vars qw($STACKSIZE $MAXBYTES $INITIALIZED);
 

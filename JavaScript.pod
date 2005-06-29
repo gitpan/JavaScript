@@ -295,6 +295,8 @@ Joost Diepenmaat for fixing lots of stuff.
 
 sungo for providing Makefile.PL fixes for Gentoo.
 
+G. Allen Morris III for fixing error handling callbacks.
+
 Mozilla Crew and Netscape for excellent SpiderMonkey JS engine.
 
 #perl on irc.infobot.org for feedback and help.

@@ -72,9 +72,9 @@ struct PCB_Context {
 	JSContext		*cx;	/* The JavaScript context which this instance belongs to */
 	PCB_Function		*func_list;	/* Pointer to the first callback item that is registered */
 	PCB_Class		*class_list;
-	SV 			*error;
 	struct PCB_Context	*next;		/* Pointer to the next created context */
 	struct PCB_Runtime	*rt;
+	SV 			*error_handler;
 };
 
 typedef struct PCB_Context PCB_Context;
@@ -1154,28 +1154,28 @@ JSHASHToSV(JSContext *cx, JSObject *object)
 /* Error rapporting */
 static void
 PCB_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report) {
-	fprintf(stderr, "%s at line %d: %s\n", message, report->lineno, report->linebuf);
-
-/*	PCB_Context *context;
+	PCB_Context *context;
 	SV	    *errfunc;
 
 	dSP;
 
 	context = PCB_GetContext(cx);
 
-	if(context != null) {
-		errfunc = context->error;
-
+	if (context != NULL) {
+	    if (context->error_handler) {
 		ENTER ;
 		SAVETMPS ;
 		PUSHMARK(SP) ;
-		XPUSHs(newSVpv(message, strlen(message));
-		XPUSHs(newSViv(report->lineno);
-		XPUSHs(newSVpv(report->linebuf, strlen(report->linebuf));
+		XPUSHs(newSVpv(message, strlen(message)));
+		XPUSHs(newSViv(report->lineno));
+		if (report->linebuf) {
+		    XPUSHs(newSVpv(report->linebuf, strlen(report->linebuf)));
+		}
 		PUTBACK;
-
-		perl_call_sv(SvRV(context->error), G_SCALAR);
-	} */
+		perl_call_sv(SvRV(context->error_handler), G_DISCARD);
+	    } else
+		fprintf(stderr, "%s at line %d: %s\n", message, report->lineno, report->linebuf);
+	}
 }
 
 /* Calls a Perl function which is bound to a JavaScript function */
@@ -1281,7 +1281,7 @@ jsc_SetErrorCallbackImpl(cx, function)
 			croak("Callback is not a reference\n");
 		} else {
 			if(SvTYPE(SvRV(function)) == SVt_PVCV) {
-				cx->error = function;
+				cx->error_handler = function;
 			} else {
 				croak("Callback is not a code reference\n");
 			}
