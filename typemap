@@ -1,12 +1,17 @@
 TYPEMAP
-PCB_Runtime *	T_PTRREF
-PCB_Context *	T_PTRREF
-PCB_Script *	T_PTRREF
+PJS_Runtime *	T_PTRREF
+PJS_Context *	T_PTRREF
+PJS_Script *	T_PTRREF
 jsval		jsval
+JSFunction *    T_PTROBJ
 
 OUTPUT
 jsval
-	{
-		/* Convert js value to perl */
-		JSVALToSV(cx->cx, JS_GetGlobalObject(cx->cx), $var, &$arg);
-	}
+    {
+        SV *orz = sv_newmortal();
+        /* Convert js value to perl */
+        JSVALToSV(cx->cx, NULL, $var, &orz);
+        sv_setsv($arg, orz);
+        JS_GC(cx->cx);
+    }
+            

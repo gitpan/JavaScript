@@ -1,22 +1,27 @@
 Revision history for Perl extension JavaScript.
 
-0.01  Mon Mar 19 09:51:10 2001
-	- original version; created by h2xs 1.21 with options
-		-f -n JavaScript
+1.00_01 Tue Jul 11
+        - Fixed invocation of methods on objects
+        - Added support for "static" methods of classes, i.e. "Test.foo(...)" should now work
+        - Added support for "static" properties of classes, i.e. "Test.bar = 10"; should now work
+        - get_engine_version now returns a list in list context with (engine, version and date of build)
+        - You can now attach a custom interrupt handler to a runtime for tracing stuff
+        - Added more tests
+        - Integrated fixes by Fotango (pathes by Chia-liang Kao, Tom Insam, James Duncan)
+                - Support for UTF8 in scripts if SpiderMonkey can handle it
+                - bind_value in JavaScript::Context
+                - Encapsulate returned JavaScript functions as JavaScript::Function objects
+                - Better exception handling
+                - Unitialized line variable in jss_compile
+                - Make sure JavaScript::Context->can also handles undefined values
+                - Lots or more tests
+                - And lots more
 
-0.5   Wed Jul 25 14:20:10 2001
-	- First public release
+0.55 Wed Jun 30 9:05:00 CET 2005
+        - Fixed error handling (patch by G. Allen Morris III)
 
-0.51  Thu Jul 26 12:01:00 2001
-	- Changed new_context to create_context to match documentation
-	- Changed create_context to not try and take named arguments
-
-0.52  Sat Aug 11 22:47:00 2001
-	- Added can method to JavaScript::Context
-	- Removed the need of passing the JSClass name to bind_object
-	- Fixed issues with package
-	- Fixed return from call
-	- Brought docs up to sync with implementation
+0.54 Tue Jun 29 11:50:00 CET 2005
+        - Make Makefile.PL play happy games with Gentoo (patch by sungo)
 
 0.53 Fri Mar 18 19:49:25 CET 2005 (Joost Diepenmaat)
         - Added JS_THREADSAFE define, which fixed bug on perl 5.8.5
@@ -30,8 +35,21 @@ Revision history for Perl extension JavaScript.
           to run on perl 5.8.6 threaded and unthreaded)
         - Fixed a couple of alloc()s
     
-0.54 Tue Jun 29 11:50:00 CET 2005
-        - Make Makefile.PL play happy games with Gentoo (patch by sungo)
+0.52  Sat Aug 11 22:47:00 2001
+	- Added can method to JavaScript::Context
+	- Removed the need of passing the JSClass name to bind_object
+	- Fixed issues with package
+	- Fixed return from call
+	- Brought docs up to sync with implementation
 
-0.55 Wed Jun 30 9:05:00 CET 2005
-        - Fixed error handling (patch by G. Allen Morris III)
+0.51  Thu Jul 26 12:01:00 2001
+	- Changed new_context to create_context to match documentation
+	- Changed create_context to not try and take named arguments
+
+0.5   Wed Jul 25 14:20:10 2001
+	- First public release
+
+0.01  Mon Mar 19 09:51:10 2001
+	- original version; created by h2xs 1.21 with options
+		-f -n JavaScript
+

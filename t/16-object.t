@@ -1,15 +1,26 @@
+#!perl
+
 package Foo;
+
 use strict;
 use warnings;
-sub new { return bless {}, __PACKAGE__; }
+
+use Test::More tests => 13;
+
+use JavaScript;
+
+sub new {
+    return bless {}, __PACKAGE__;
+}
+
 sub bar { 
-	my $self = shift; 
-	return 5; 
+    my $self = shift; 
+    return 5; 
 }
 
 sub baz { 
-	my $self = shift; 
-	return "five"; 
+    my $self = shift; 
+    return "five"; 
 }
 
 sub getWrap {
@@ -24,27 +35,11 @@ sub setWrap {
     $self->{"wrapped"} = $value;
 }
 
-use Test;
-use strict;
-
-# How many tests
-BEGIN { plan tests => 16  };
-
-# Load JavaScript module
-use JavaScript;
-
-# First test, JavaScript has set up properly
-ok(1);
-
 # Create a new runtime
-my $runtime = new JavaScript::Runtime();
-ok(1);
+my $rt1 = JavaScript::Runtime->new();
+my $cx1 = $rt1->create_context();
 
-# Create a new context
-my $context = $runtime->create_context();
-ok(1);
-
-$context->bind_class(
+$cx1->bind_class(
         name => 'Foo',
         constructor => sub { return new Foo(); },
         methods => {
@@ -64,7 +59,7 @@ $context->bind_class(
 
 my $foo = new Foo();
 
-$context->bind_function(
+$cx1->bind_function(
 	name => 'print', 
 	func => sub { 
 		my $dt = shift; 
@@ -72,18 +67,18 @@ $context->bind_function(
 	}
 );
 
-$context->bind_object('FooSan', $foo);
+$cx1->bind_object('FooSan', $foo);
 
 ok(1);
 
-$context->eval(q!
+$cx1->eval(q!
 a = FooSan.bar();
 print(a);
 !);
 
 ok(1);
 
-$context->eval(q{
+$cx1->eval(q{
 FooSan.std = 1;
 });
 
@@ -91,13 +86,13 @@ ok($foo->{std} == 1);
 
 $foo->{std} = 3;
 
-ok($context->eval(q{ FooSan.std }) == 3);
+ok($cx1->eval(q{ FooSan.std }) == 3);
 
 
 
 
 
-$context->eval(q!
+$cx1->eval(q!
 FooSan.wrapped_value = 1;
 !);
 
@@ -107,24 +102,24 @@ ok($foo->{"setter_called"});
 ok($foo->{wrapped} == 1);
 
 
-ok($context && ref($context)); # somehow disappeared during development
+ok($cx1 && ref($cx1)); # somehow disappeared during development
 
 $foo->{wrapped} = 2;
 
-ok($context->eval(q{
+ok($cx1->eval(q{
     FooSan.wrapped_value
 }) == 2);
 ok($foo->{"getter_called"});
 
-ok($context && ref($context)); # somehow disappeared during development
+ok($cx1 && ref($cx1)); # somehow disappeared during development
 
 
-$context->eval(q{
+$cx1->eval(q{
 FooSan.wrapped_value = FooSan.wrapped_value + 1;
 });
 ok($foo->{"getter_called"});
 
-ok($context && ref($context)); # somehow disappeared during development
+ok($cx1 && ref($cx1)); # somehow disappeared during development
 
 
 ok($foo->{wrapped} == 3);

@@ -1,51 +1,96 @@
 use ExtUtils::MakeMaker;
+
+use strict;
+use warnings;
+
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.
 
-$define = "";
 # Make sure we know what platform we are compiling for
+my @defines;
+
+my $path_separator = ":";
 if($^O eq 'MSWin32') {
-	$define .= " -DXP_PC";
+    push @defines,  "XP_PC";
+    $path_separator = ";";
 } else {
-	$define .= " -DXP_UNIX";
+    push @defines, "XP_UNIX";
 }
 
-my $inc = '';
-
-if(-f "/etc/gentoo-release") {
-	# Gentoo puts libjs in a slightly hidden spot.
-	$inc = '-I/usr/lib/MozillaFirefox/include/js/ -I/usr/lib/MozillaFirefox/';
-}
-
-#test for debian type include files...
-if (-f "/usr/include/smjs/jsapi.h" or -f "/usr/local/include/smjs/jsapi.h") {
-    $define .= " -DINCLUDES_IN_SMJS"
-}
-
+# Handle threadsafe
 if($ENV{JS_THREADSAFE}) {
-  $define .= " -DJS_THREADSAFE";
+    push @defines, "JS_THREADSAFE";
+}
+else {
+    my $enable_threadsafe = prompt("Is your SpiderMonkey compiled with JS_THREADSAFE (most things will fail if you answer wrong)? [y/N]");
+    push @defines, "JS_THREADSAFE" if $enable_threadsafe eq 'y';
 }
 
-my $lib = "-ljs";
+# Name of lib to link
+my $lib = 'js';
+
+# Directories with include files
+my @incs;
+
+# Directories with libraries
+my @libs;
+
 #test for debian type libsmjs
 #this could probably be done better, but I'm not sure how to
 #get this platform independant
 if (-f "/usr/lib/libsmjs.so" or -f "/usr/local/lib/libsmjs.so") {
-    $lib = "-lsmjs";
+    $lib = "smjs";
+}
+if (-f "/usr/include/smjs/jsapi.h") {
+    push @incs, "/usr/include/smjs/";
+    push @defines, "INCLUDES_IN_SMJS";
+}
+elsif(-f "/usr/local/include/smjs/jsapi.h") {
+    push @incs, "/usr/local/include/smjs/";
+    push @defines, "INCLUDES_IN_SMJS";
 }
 
+# test for gentoo
+if(-f "/etc/gentoo-release") {
+    # Gentoo puts libjs in a slightly hidden spot.
+    @incs = qw(/usr/lib/MozillaFirefox/include/js/
+              /usr/lib/MozillaFirefox/);
 
-WriteMakefile(
-    'NAME'		=> 'JavaScript',
-    'VERSION_FROM'	=> 'JavaScript.pm', # finds $VERSION
-    'PREREQ_PM'		=> {}, # e.g., Module::Name => 1.1
-    ($] >= 5.005 ?    ## Add these new keywords supported since 5.005
-      (ABSTRACT_FROM => 'JavaScript.pm', # retrieve abstract from module
-       AUTHOR     => 'claesjac@cpan.org>') : ()),
-    'LIBS'		=> [$lib], # e.g., '-lm'
-    'DEFINE'		=> $define, # e.g., '-DHAVE_SOMETHING'
-	# Insert -I. if you add *.h files later:
-    'INC'		=> $inc, # e.g., '-I/usr/include/other'
-	# Un-comment this if you add C files to link with later:
-    # 'OBJECT'		=> '$(O_FILES)', # link all the C files too
-);
+}
+
+# Override with $ENV{JS_LIB} and $ENV{JS_INC}
+if (exists $ENV{JS_LIB}) {
+    @libs = get_paths($ENV{JS_LIB});
+    $lib = 'js';
+}
+if (exists $ENV{JS_INC}) {
+    @incs = get_paths($ENV{JS_INC});
+    @defines = grep { $_ ne 'INCLUDES_IN_SMJS' } @defines;
+}
+
+my $libs = join(" ", map { "-L$_" } @libs);
+
+# Check if we need to enable JS_C_STRINGS_ARE_UTF8?
+my $enable_utf8 = prompt("Is your SpiderMonkey compiled with support for unicode (t/23-unicode.t will fail if you answer wrong) ? [y/N]", "N");
+push @defines, "JS_C_STRINGS_ARE_UTF8" if $enable_utf8 eq 'y';
+
+
+WriteMakefile('NAME'		=> 'JavaScript',
+              'VERSION_FROM'	=> 'lib/JavaScript.pm', # finds $VERSION
+              'PREREQ_PM'	=> {
+                                    'Test::More' => 0,
+                                    'Test::Exception' => 0,
+                                }, # e.g., Module::Name => 1.1
+              ($] >= 5.005 ?    ## Add these new keywords supported since 5.005
+               (ABSTRACT_FROM   => 'lib/JavaScript.pm', # retrieve abstract from module
+                AUTHOR          => 'claesjac@cpan.org>') : ()),
+              'LIBS'		=> ["$libs -l${lib}"], # e.g., '-lm'
+              'DEFINE'		=> join(" ", map { "-D$_"} @defines),
+              'INC'		=> join(" ", map { "-I$_" } @incs),
+          );
+
+sub get_paths {
+    my $paths = shift;
+    my @paths = map { s/^\s+//; s/\s+$//; $_ } split/$path_separator/, $paths;
+    return @paths;
+}
