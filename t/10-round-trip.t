@@ -2,7 +2,7 @@
 
 package Foo;
 
-use Test::More tests => 7;
+use Test::More tests => 11;
 
 use strict;
 use warnings;
@@ -85,3 +85,32 @@ var obj = { key1: 'ok', key2: 'ok' };
 a;
 !);
 isa_ok($ret, 'Foo');
+
+
+
+# throw an instance of a perl class bound into JS space _through_ js
+# space. Make sure that (a) the instance in JS space looks like the
+# thing we threw, and (b) that the instance that leaves is _still_
+# the thing we threw.
+
+# the thing we throw.
+my $thing = bless { std => 5, wrapped => 4 }, 'Foo';
+
+# a function to throw it.
+$cx1->bind_function( name => 'throw_foo', func => sub { die $thing });
+
+my $error = $cx1->eval(q!
+var ret; // to return the object from JS space
+
+try {
+  throw_foo();
+} catch (e) {
+  isa_ok( e, "Foo" ); // this test passes, but if run, breaks the next test
+  is( e.std, 5, "std is correct" );
+  is( e.wrapped_value, 4, "wrapped is correct" );
+  ret = e;
+}
+ret;
+!);
+
+is( $error->{std}, 5, "error _leaves_ JS space ok");

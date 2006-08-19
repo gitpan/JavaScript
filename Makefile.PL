@@ -38,7 +38,10 @@ my @libs;
 #test for debian type libsmjs
 #this could probably be done better, but I'm not sure how to
 #get this platform independant
-if (-f "/usr/lib/libsmjs.so" or -f "/usr/local/lib/libsmjs.so") {
+if (-f "/usr/lib/libmozjs.so" or -f "/usr/local/lib/libmozjs.so") {
+    $lib = "mozjs";
+}
+elsif (-f "/usr/lib/libsmjs.so" or -f "/usr/local/lib/libsmjs.so") {
     $lib = "smjs";
 }
 if (-f "/usr/include/smjs/jsapi.h") {
@@ -48,6 +51,14 @@ if (-f "/usr/include/smjs/jsapi.h") {
 elsif(-f "/usr/local/include/smjs/jsapi.h") {
     push @incs, "/usr/local/include/smjs/";
     push @defines, "INCLUDES_IN_SMJS";
+}
+elsif(-f "/usr/include/mozjs/jsapi.h") {
+    push @incs, "/usr/include/mozjs/";
+    push @defines, "INCLUDES_IN_MOZJS";
+}
+elsif(-f "/sr/local/include/mozjs/jsapi.h") {
+    push @incs, "/usr/local/include/mozjs/";
+    push @defines, "INCLUDES_IN_MOZJS";
 }
 
 # test for gentoo

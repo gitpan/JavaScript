@@ -1,5 +1,10 @@
 Revision history for Perl extension JavaScript.
 
+1.00_02 Sat Aug 19
+        - Incorporated patch to support new SpiderMokey installation-scheme in Debian [rt.cpan.org #18152]
+        - Passing ERRSV to SVToJSVAL doesn't seem to be safe so we'll pass a copy instead (Tom Insam)
+        - Cleaning up some internal function names
+
 1.00_01 Tue Jul 11
         - Fixed invocation of methods on objects
         - Added support for "static" methods of classes, i.e. "Test.foo(...)" should now work

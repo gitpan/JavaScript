@@ -13,12 +13,25 @@
 
 #else
 
+#ifdef INCLUDES_IN_MOZJS
+
+#include <mozjs/jsapi.h>
+#include <mozjs/jsdbgpi.h>
+#include <mozjs/jsinterp.h>
+#include <mozjs/jsfun.h>
+#include <mozjs/jsobj.h>
+#include <mozjs/jsprf.h>
+
+#else
+
 #include <jsapi.h>
 #include <jsdbgapi.h>
 #include <jsinterp.h>
 #include <jsfun.h>
 #include <jsobj.h>
 #include <jsprf.h>
+
+#endif
 
 #endif
 
@@ -173,6 +186,12 @@ static SV* JSARRToSV(JSContext *, HV *, JSObject *);
 
 static JSBool JSVALToSV(JSContext *, HV *, jsval, SV **);
 static JSBool SVToJSVAL_real(JSContext *, JSObject *, SV *, jsval *, int);
+
+/* Callbacks */
+static JSBool PJS_invoke_perl_function(JSContext *, JSObject *, uintN, jsval *, jsval *);
+static JSBool PJS_invoke_perl_object_method(JSContext *, JSObject *, uintN, jsval *, jsval *);
+static JSBool PJS_invoke_perl_property_getter(JSContext *cx, JSObject *, jsval, jsval *);
+static JSBool PJS_invoke_perl_property_setter(JSContext *cx, JSObject *, jsval, jsval *);                
 
 #define SVToJSVAL(cx,obj,ref,rval)        SVToJSVAL_real(cx,obj,ref,rval,0)
 #define SVToJSVAL_nofunc(cx,obj,ref,rval) SVToJSVAL_real(cx,obj,ref,rval,1)
@@ -398,7 +417,7 @@ static void PJS_report_exception(PJS_Context *pcx) {
     }
 }
 
-static SV *PCB_call_perl_method(const char *method, ...) {
+static SV *PJS_call_perl_method(const char *method, ...) {
     dSP;
     va_list ap;
     SV *arg, *ret = sv_newmortal();
@@ -468,7 +487,8 @@ static I32 perl_call_sv_with_jsvals_rsv(JSContext *cx, JSObject *obj, SV *code, 
 
         if (SvTRUE(ERRSV)) {
             jsval rval;
-            if (SVToJSVAL(cx, obj, ERRSV, &rval) != JS_FALSE) {
+            SV* cp = sv_mortalcopy( ERRSV );
+            if (SVToJSVAL(cx, obj, cp, &rval) != JS_FALSE) {
                 JS_SetPendingException(cx, rval);
                 rcount = -1;
             }
@@ -499,7 +519,7 @@ static I32 perl_call_sv_with_jsvals(JSContext *cx, JSObject *obj, SV *code, SV *
     return rcount;
 }
 
-static JSBool PCB_call_javascript_function(PJS_Context *pcx, jsval func, SV *args, jsval *rval) {
+static JSBool PJS_call_javascript_function(PJS_Context *pcx, jsval func, SV *args, jsval *rval) {
     jsval *arg_list;
     jsval *context;
     SV *val;
@@ -555,7 +575,7 @@ static JSBool perl_call_jsfunc(JSContext *cx, JSObject *obj, uintN argc, jsval *
 }
 
 /* Universal call back for functions */
-static JSBool PCB_UniversalFunctionStub(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
+static JSBool PJS_invoke_perl_function(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
     PJS_Function *callback;
     PJS_Context *context;
     JSFunction *fun = JSFUN_SELF;
@@ -573,34 +593,6 @@ static JSBool PCB_UniversalFunctionStub(JSContext *cx, JSObject *obj, uintN argc
     }
 
     return JS_TRUE;
-}
-
-static JSClass*  PCB_NewStdJSClass(char *name) {	
-    JSClass *jsc;
-
-    Newz(1, jsc, 1, JSClass);
-    if (jsc == NULL) {
-        croak("Failed to allocate memory for JSClass");
-    }
-
-    Newz(1, jsc->name, strlen(name) + 1, char);
-    if (jsc->name == NULL) {
-        croak("Failed to allocate memory for classname");
-    }
-
-    Copy(name, jsc->name, strlen(name), char);
-    
-    jsc->flags = JSCLASS_HAS_PRIVATE;
-    jsc->addProperty = JS_PropertyStub;
-    jsc->delProperty = JS_PropertyStub;  
-    jsc->getProperty = JS_PropertyStub;  
-    jsc->setProperty = JS_PropertyStub;
-    jsc->enumerate = JS_EnumerateStub;
-    jsc->resolve = JS_ResolveStub;
-    jsc->convert = JS_ConvertStub;
-    jsc->finalize = PJS_finalize;
-    
-    return jsc;
 }
 
 static void PJS_finalize(JSContext *cx, JSObject *obj) {
@@ -1226,7 +1218,7 @@ static void PJS_bind_function(PJS_Context *pcx, const char *name, SV *cv) {
         Copy(name, pfunc->name, strlen(name), char);
 
         /* Add the function to the javascript context */
-        if (JS_DefineFunction(jcx, JS_GetGlobalObject(jcx), name, PCB_UniversalFunctionStub, 0, 0) == JS_FALSE) {
+        if (JS_DefineFunction(jcx, JS_GetGlobalObject(jcx), name, PJS_invoke_perl_function, 0, 0) == JS_FALSE) {
             PJS_free_function(pfunc);
             croak("Failed to define function");
         }
@@ -1259,7 +1251,7 @@ static JSBool SVToJSVAL_real(JSContext *cx, JSObject *obj, SV *ref, jsval *rval,
 
         if (strcmp(name, PJS_FUNCTION_PACKAGE) == 0) {
             JSFunction *func = INT2PTR(JSFunction *,
-                                       SvIV((SV *) SvRV(PCB_call_perl_method("content", ref, NULL))));
+                                       SvIV((SV *) SvRV(PJS_call_perl_method("content", ref, NULL))));
             JSObject *obj = JS_GetFunctionObject(func);
             *rval = OBJECT_TO_JSVAL(obj);
             return JS_TRUE;
@@ -1480,7 +1472,7 @@ static JSBool JSVALToSV(JSContext *cx, HV *seen, jsval v, SV** sv) {
                 *x = v;
                 JS_AddRoot(cx, (void *)x);
 
-                sv_setsv(*sv, PCB_call_perl_method("new",
+                sv_setsv(*sv, PJS_call_perl_method("new",
                                                    newSVpv(PJS_FUNCTION_PACKAGE, 0),
                                                    content, pcx,
                                                    sv_2mortal(newSViv(PTR2IV(x))), NULL));
@@ -1911,10 +1903,10 @@ jsc_call(cx, function, args)
         JSFunction *func;
     CODE:
         if (sv_isobject(function) && sv_derived_from(function, PJS_FUNCTION_PACKAGE)) {
-            tmp = SvIV((SV*)SvRV(PCB_call_perl_method("content", function, NULL)));
+            tmp = SvIV((SV*)SvRV(PJS_call_perl_method("content", function, NULL)));
             func = INT2PTR(JSFunction *, tmp);
 
-            if (PCB_call_javascript_function(cx, (jsval) (func->object), args, &rval) == JS_FALSE) {
+            if (PJS_call_javascript_function(cx, (jsval) (func->object), args, &rval) == JS_FALSE) {
                 /* Exception was thrown */
                 XSRETURN_UNDEF;
             }
@@ -1930,7 +1922,7 @@ jsc_call(cx, function, args)
                 croak("Undefined subroutine %s called", name);
             }
             else if (JS_ValueToFunction(cx->cx, fval) != NULL) {
-                if (PCB_call_javascript_function(cx, fval, args, &rval) == JS_FALSE) {
+                if (PJS_call_javascript_function(cx, fval, args, &rval) == JS_FALSE) {
                     /* Exception was thrown */
                     XSRETURN_UNDEF;
                 }
@@ -1964,7 +1956,7 @@ jsc_call_in_context( cx, afunc, args, rcx, class )
         SV *val, *value;
         IV tmp;
     CODE:
-        tmp = SvIV((SV *) SvRV(PCB_call_perl_method("content", afunc, NULL)));
+        tmp = SvIV((SV *) SvRV(PJS_call_perl_method("content", afunc, NULL)));
         func = INT2PTR(JSFunction *,tmp);
         av = (AV *) SvRV(args);
         av_length = av_len(av);
