@@ -23,7 +23,7 @@ our @EXPORT_OK = (@EXPORT);
 
 our %EXPORT_TAGS = ( all => [@EXPORT_OK] );
 
-our $VERSION = '1.00_02';
+our $VERSION = '1.00';
 
 our $MAXBYTES = 1024 ** 2;
 our $STACKSIZE = 32 * 1024;
