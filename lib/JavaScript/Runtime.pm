@@ -3,6 +3,8 @@ package JavaScript::Runtime;
 use strict;
 use warnings;
 
+use JavaScript;
+
 sub new {
     my ($pkg, $maxbytes) = @_;
 

@@ -1,5 +1,11 @@
 Revision history for Perl extension JavaScript.
 
+1.02 Mon Feb 12 2007
+        - Makefile.PL now generates a JavaScript_Env.h that sets correct defines and includes correct headers
+        - Structs, macros etc are now in a JavaScript.h
+        - Header files and typemap is now installed with module
+	- Added ext field (void *) to PJS_Runtime and PJS_Context that can be used custom stuff
+			
 1.01 Mon Feb 12 2007
         - Added support for detecting DarwinPorts [rt.cpan.org #14910]
         - Added missing test for converting JavaScript booleans -> Perl

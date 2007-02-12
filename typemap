@@ -2,7 +2,7 @@ TYPEMAP
 PJS_Runtime *	T_PTRREF
 PJS_Context *	T_PTRREF
 PJS_Script *	T_PTRREF
-jsval		jsval
+jsval			jsval
 JSFunction *    T_PTROBJ
 
 OUTPUT
