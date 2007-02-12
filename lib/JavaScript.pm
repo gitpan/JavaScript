@@ -23,7 +23,7 @@ our @EXPORT_OK = (@EXPORT);
 
 our %EXPORT_TAGS = ( all => [@EXPORT_OK] );
 
-our $VERSION = '1.00';
+our $VERSION = '1.01';
 
 our $MAXBYTES = 1024 ** 2;
 our $STACKSIZE = 32 * 1024;
@@ -163,11 +163,11 @@ L<http://rt.cpan.org>.
 
 =head1 AUTHOR
 
-Claes Jacobsson C<< <claesjac@cpan.org> >>
+Claes Jakobsson C<< <claesjac@cpan.org> >>
 
 =head1 LICENCE AND COPYRIGHT
 
-Copyright (c) 2001 - 2006, Claes Jacobsson C<< <claesjac@cpan.org> >>. All rights reserved.
+Copyright (c) 2001 - 2006, Claes Jakobsson C<< <claesjac@cpan.org> >>. All rights reserved.
 
 This module is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself. See L<perlartistic>.

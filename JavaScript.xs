@@ -10,17 +10,19 @@
 #include <smjs/jsfun.h>
 #include <smjs/jsobj.h>
 #include <smjs/jsprf.h>
+#include <smjs/jsscope.h>
 
 #else
 
 #ifdef INCLUDES_IN_MOZJS
 
 #include <mozjs/jsapi.h>
-#include <mozjs/jsdbgpi.h>
+#include <mozjs/jsdbgapi.h>
 #include <mozjs/jsinterp.h>
 #include <mozjs/jsfun.h>
 #include <mozjs/jsobj.h>
 #include <mozjs/jsprf.h>
+#include <mozjs/jsscope.h>
 
 #else
 
@@ -30,6 +32,7 @@
 #include <jsfun.h>
 #include <jsobj.h>
 #include <jsprf.h>
+#include <jsscope.h>
 
 #endif
 

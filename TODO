@@ -2,11 +2,10 @@
 TODO
 ====
 
-- Lots?
+- Write examples
 
 ====
 BUGS
 ====
 
-- Does not free or destroy contexts yet
-- Probablly a lot of memory leaks
+- May leak some memory here and there

@@ -1,5 +1,11 @@
 Revision history for Perl extension JavaScript.
 
+1.01 Mon Feb 12 2007
+        - Added support for detecting DarwinPorts [rt.cpan.org #14910]
+        - Added missing test for converting JavaScript booleans -> Perl
+        - Integrated patch that fixes compilation problems on Debian (Toru Yamaguchi, Daniel Burke)
+        - Cleaned up TODO
+
 1.00 Mon Sep 4 2006
         - Release of 1.00
 

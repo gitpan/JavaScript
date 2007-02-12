@@ -56,7 +56,7 @@ elsif(-f "/usr/include/mozjs/jsapi.h") {
     push @incs, "/usr/include/mozjs/";
     push @defines, "INCLUDES_IN_MOZJS";
 }
-elsif(-f "/sr/local/include/mozjs/jsapi.h") {
+elsif(-f "/usr/local/include/mozjs/jsapi.h") {
     push @incs, "/usr/local/include/mozjs/";
     push @defines, "INCLUDES_IN_MOZJS";
 }
@@ -67,6 +67,12 @@ if(-f "/etc/gentoo-release") {
     @incs = qw(/usr/lib/MozillaFirefox/include/js/
               /usr/lib/MozillaFirefox/);
 
+}
+
+# test for DarwinPorts
+if (-d "/opt/local/include/spidermonkey") {
+    push @incs, "/opt/local/include/spidermonkey";
+    push @libs, "/opt/local/lib";
 }
 
 # Override with $ENV{JS_LIB} and $ENV{JS_INC}
@@ -94,7 +100,7 @@ WriteMakefile('NAME'		=> 'JavaScript',
                                 }, # e.g., Module::Name => 1.1
               ($] >= 5.005 ?    ## Add these new keywords supported since 5.005
                (ABSTRACT_FROM   => 'lib/JavaScript.pm', # retrieve abstract from module
-                AUTHOR          => 'claesjac@cpan.org>') : ()),
+                AUTHOR          => 'Claes Jakobsson <claesjac@cpan.org>') : ()),
               'LIBS'		=> ["$libs -l${lib}"], # e.g., '-lm'
               'DEFINE'		=> join(" ", map { "-D$_"} @defines),
               'INC'		=> join(" ", map { "-I$_" } @incs),

@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 18;
+use Test::More tests => 20;
 
 use strict;
 use warnings;
@@ -31,6 +31,10 @@ is($cx1->eval(q{"";}), "", "Empty string");
 is($cx1->eval(q{"foobar";}), "foobar", "Short string");
 my $str = "A" x 40000;
 is($cx1->eval(qq{"$str";}), $str, "Long string > 32768 chars");
+
+# Booleans
+ok($cx1->eval("1 == 1;"), "True");
+ok(!$cx1->eval("1 == 0;"), "False");
 
 # Arrays
 is_deeply($cx1->eval("v = []; v;"), [], "Empty array");
