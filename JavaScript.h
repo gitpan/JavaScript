@@ -1,4 +1,4 @@
-#include "JavaScript_Env.h";
+#include "JavaScript_Env.h"
 
 /* Define macros to handle JS_GetClass in safe and non-safe thread spidermonkeys */
 #ifdef JS_THREADSAFE
@@ -99,23 +99,30 @@ struct PJS_Context {
 
     /* Set to a SVt_PVCV if we have an branch handler */
     SV *branch_handler;
-
- 	/* Extension field that can be used by subclasses */
-	void *ext;
 };
 
 typedef struct PJS_Context PJS_Context;
 
+struct PJS_InterruptHandler {
+    JSTrapHandler               handler;
+    void                        *data;
+    
+    /* Private field, don't mess with it */
+    struct PJS_InterruptHandler *_next;
+};
+
+typedef struct PJS_InterruptHandler PJS_InterruptHandler;
+
 struct PJS_Runtime {
-    JSRuntime 	*rt;
-    PJS_Context	*list;
-    SV 	 		*interrupt_handler;
+    JSRuntime 	            *rt;
+    PJS_Context	            *list;
+    PJS_InterruptHandler 	*interrupt_handlers;
 
 	/* Extension field that can be used by subclasses */
-	void 		*ext;
 };
 
 typedef struct PJS_Runtime PJS_Runtime;
+
 
 /* Structure that keeps precompiled strict */
 struct PJS_Script {

@@ -49,29 +49,42 @@ static JSBool PJS_invoke_perl_property_setter(JSContext *cx, JSObject *, jsval, 
 #define JSFUN_SELF JS_ValueToFunction(cx, argv[-2])
 #define JSFUN_PARENT (JSObject *) JSVAL_TO_OBJECT(argv[-1])
 
-/* caller by runtime between ops */
 static JSTrapStatus PJS_interrupt_handler(JSContext *cx, JSScript *script, jsbytecode *pc, jsval *rval, void *closure) {
-    dSP;
     PJS_Runtime *rt = (PJS_Runtime *) closure;
+    PJS_InterruptHandler *handler = rt->interrupt_handlers;
+    JSTrapStatus status = JSTRAP_CONTINUE;
+
+    while (handler && status == JSTRAP_CONTINUE) {
+        status = (handler->handler)(cx, script, pc, rval, handler->data);
+        handler = handler->_next;
+    }
+    
+    return status;
+}
+
+/* Perl callback interrupt handler */
+static JSTrapStatus PJS_perl_interrupt_handler(JSContext *cx, JSScript *script, jsbytecode *pc, jsval *rval, void *closure) {
+    dSP;
     PJS_Context *pcx = PJS_GET_CONTEXT(cx);
+    SV *handler = (SV *) closure;
     SV *scx, *rv;
     int rc;
     JSTrapStatus status = JSTRAP_CONTINUE;
     
-    if (rt->interrupt_handler) {
+    if (handler) {
         ENTER ;
         SAVETMPS ;
         PUSHMARK(SP) ;
 
-	scx = sv_newmortal();
-	sv_setref_pv(scx, Nullch, (void*) pcx);
+        scx = sv_newmortal();
+        sv_setref_pv(scx, Nullch, (void*) pcx);
         
         XPUSHs(scx);
         XPUSHs(newSViv(*pc));
         
         PUTBACK;
         
-        rc = perl_call_sv(SvRV(rt->interrupt_handler), G_SCALAR | G_EVAL);
+        rc = perl_call_sv(SvRV(handler), G_SCALAR | G_EVAL);
 
         SPAGAIN;
 
@@ -109,7 +122,12 @@ static void PJS_error_handler(JSContext *cx, const char *message, JSErrorReport 
         XPUSHs(newSVpv(message, strlen(message)));
         XPUSHs(newSVpv(report->filename, strlen(report->filename)));
         XPUSHs(newSViv(report->lineno));
-        XPUSHs(newSVpv(report->linebuf, strlen(report->linebuf)));
+        if (report->linebuf) {
+            XPUSHs(newSVpv(report->linebuf, strlen(report->linebuf)));
+        }
+        else {
+            XPUSHs(&PL_sv_undef);
+        }
         PUTBACK;
         perl_call_sv(SvRV(context->error_handler), G_DISCARD | G_VOID | G_EVAL);
     }
@@ -371,7 +389,6 @@ static I32 perl_call_sv_with_jsvals(JSContext *cx, JSObject *obj, SV *code, SV *
 
 static JSBool PJS_call_javascript_function(PJS_Context *pcx, jsval func, SV *args, jsval *rval) {
     jsval *arg_list;
-    jsval *context;
     SV *val;
     AV *av;
     int arg_count, i;
@@ -498,7 +515,6 @@ static JSBool PJS_invoke_perl_object_method(JSContext *cx, JSObject *obj, uintN 
     PJS_Class *pcls;
     PJS_Function *pfunc;
     JSFunction *jfunc = JSFUN_SELF;
-    JSClass *clasp;
     SV *caller;
     char *name;
     U8 invocation_mode;
@@ -1146,9 +1162,9 @@ static JSBool SVToJSVAL_real(JSContext *cx, JSObject *obj, SV *ref, jsval *rval,
         STRLEN len;
 
 #ifdef JS_C_STRINGS_ARE_UTF8
-        str = sv_2pvutf8(ref, &len);
+        str = SvPVutf8(ref, len);
 #else
-        str = SvPV(ref, len);
+        str = SvPVbyte(ref, len);
 #endif
         *rval = STRING_TO_JSVAL(JS_NewStringCopyN(cx, str, len));
     }
@@ -1161,7 +1177,6 @@ static JSBool SVToJSVAL_real(JSContext *cx, JSObject *obj, SV *ref, jsval *rval,
         if(type == SVt_PVHV) {
             HV *hv = (HV *) SvRV(ref);
             JSObject *new_obj;
-            JSClass *jsclass;
             
             new_obj = JS_NewObject(cx, NULL, NULL, NULL);
             
@@ -1308,8 +1323,18 @@ static JSBool JSVALToSV(JSContext *cx, HV *seen, jsval v, SV** sv) {
                     return JS_TRUE;
                 }
             }
-            
+
+#ifdef JS_ENABLE_E4X
+	        if (OBJECT_IS_XML(cx,object)) {
+	                JSString *xmlstring = js_ValueToXMLString(cx,v);
+	                sv_setpv(*sv, JS_GetStringBytes(xmlstring));
+	                SvUTF8_on(*sv);
+	                return JS_TRUE;
+	        } 
+            else if (JS_ObjectIsFunction(cx, object)) {
+#else
             if (JS_ObjectIsFunction(cx, object)) {
+#endif               
                 JSFunction *jsfun = JS_ValueToFunction(cx, v);
                 SV *pcx = sv_2mortal(newSViv(PTR2IV(PJS_GET_CONTEXT(cx))));
                 SV *content = sv_2mortal(newRV_noinc(newSViv(PTR2IV(jsfun))));
@@ -1352,7 +1377,7 @@ static JSBool JSVALToSV(JSContext *cx, HV *seen, jsval v, SV** sv) {
             SV **used;
             char hkey[32];
             int klen = snprintf(hkey, 32, "%p", object);
-            if (used = hv_fetch(seen, hkey, klen, 0)) {
+            if ((used = hv_fetch(seen, hkey, klen, 0)) != NULL) {
                 sv_setsv(*sv, *used);
                 return JS_TRUE;
             } else if(JS_IsArrayObject(cx, object)) {
@@ -1463,7 +1488,7 @@ js_get_engine_version()
         RETVAL
 
 SV*
-js_does_handle_utf8()
+js_does_support_utf8()
     CODE:
 #ifdef JS_C_STRINGS_ARE_UTF8
         RETVAL = &PL_sv_yes;
@@ -1472,7 +1497,29 @@ js_does_handle_utf8()
 #endif
     OUTPUT:
         RETVAL
-       
+
+SV*
+js_does_support_e4x()
+    CODE:
+#ifdef JS_ENABLE_E4X
+        RETVAL = &PL_sv_yes;
+#else
+        RETVAL = &PL_sv_no;
+#endif
+	    OUTPUT:
+	        RETVAL
+
+SV*
+js_does_support_threading()
+    CODE:
+#ifdef JS_THREADING
+        RETVAL = &PL_sv_yes;
+#else
+        RETVAL = &PL_sv_no;
+#endif
+	    OUTPUT:
+	        RETVAL
+
 MODULE = JavaScript		PACKAGE = JavaScript::Runtime
 
 PJS_Runtime *
@@ -1502,40 +1549,77 @@ jsr_destroy(rt)
     PJS_Runtime *rt
     CODE:
         if (rt != NULL) {
-            if (rt->interrupt_handler) {
-                SvREFCNT_dec(rt->interrupt_handler);
-            }
-            
             JS_DestroyRuntime(rt->rt);
             Safefree(rt);
         }
 
 void
-jsr_set_interrupt_handler(rt,handler)
+jsr_add_interrupt_handler(rt,handler)
     PJS_Runtime *rt;
-    SV *handler;
+    PJS_InterruptHandler *handler;
     PREINIT:
+        PJS_InterruptHandler *base;
+    CODE:
+        handler->_next = NULL;
+        if (rt->interrupt_handlers) {
+            base = rt->interrupt_handlers;
+            while(base->_next != NULL) {
+                base = base->_next;
+            }
+            base->_next = handler;
+        }
+        else {
+            rt->interrupt_handlers = handler;
+            JS_SetInterrupt(rt->rt, PJS_interrupt_handler, (void *) rt);            
+        }        
+        
+void
+jsr_remove_interrupt_handler(rt,handler)
+    PJS_Runtime *rt;
+    PJS_InterruptHandler *handler;
+    PREINIT:
+        PJS_InterruptHandler *current;
         JSTrapHandler trap_handler;
         void *ptr;
     CODE:
-        if (!SvOK(handler)) {
-            /* Remove handler */
-            if (rt->interrupt_handler != NULL) {
-                SvREFCNT_dec(rt->interrupt_handler);
+        if (rt->interrupt_handlers == handler) {
+            rt->interrupt_handlers = handler->_next;
+        }
+        else {
+            /* seek and destroy */
+            current = rt->interrupt_handlers;
+            while (current->_next != NULL && current->_next != handler) {
+                current = current->_next;
             }
-
-            rt->interrupt_handler = NULL;
+            if (current->_next == handler) {
+                current->_next = current->_next->_next;
+            }
+        }
+        /* Removed last handler, disable interrupt */
+        if (rt->interrupt_handlers == NULL) {
             JS_ClearInterrupt(rt->rt, &trap_handler, &ptr);
         }
-        else if (SvROK(handler) && SvTYPE(SvRV(handler)) == SVt_PVCV) {
-            if (rt->interrupt_handler != NULL) {
-                SvREFCNT_dec(rt->interrupt_handler);
-            }
-            
-            rt->interrupt_handler = SvREFCNT_inc(handler);
-            JS_SetInterrupt(rt->rt, PJS_interrupt_handler, rt);
-        }
 
+PJS_InterruptHandler *
+jsr_init_perl_interrupt_handler(cb)
+    SV *cb;
+    PREINIT:
+        PJS_InterruptHandler *handler;
+    CODE:
+        Newz(1, handler, 1, PJS_InterruptHandler);
+        handler->handler = PJS_perl_interrupt_handler;
+        handler->data = (SV *) SvREFCNT_inc(cb);
+        RETVAL = handler;
+    OUTPUT:
+        RETVAL
+        
+void
+jsr_destroy_perl_interrupt_handler(handler)
+    PJS_InterruptHandler *handler;
+    CODE:
+        SvREFCNT_dec(handler->data);
+        Safefree(handler);
+    
 MODULE = JavaScript		PACKAGE = JavaScript::Context
 
 PJS_Context *
@@ -1640,7 +1724,7 @@ jsc_bind_function(cx, name, callback)
     CODE:
         PJS_bind_function(cx, name, callback);
 
-int
+void
 jsc_bind_class(cx, name, pkg, cons, fs, static_fs, ps, static_ps, flags)
     PJS_Context	*cx;
     char *name;
@@ -1675,12 +1759,10 @@ jsc_bind_value(cx, parent, name, object)
         }
 
         if (SVToJSVAL(cx->cx, pobj, object, &val) == JS_FALSE) {
-            fprintf(stderr, "not working\n");
             val = JSVAL_VOID;
             XSRETURN_UNDEF;
         }
         if (JS_SetProperty(cx->cx, pobj, name, &val) == JS_FALSE) {
-            fprintf(stderr, "can't set prop\n");
             XSRETURN_UNDEF;
         }
         RETVAL = val;
@@ -1695,7 +1777,7 @@ jsc_eval(cx, source, name)
     PREINIT:
         jsval rval;
         JSContext *jcx;
-        JSObject *gobj, *eobj;
+        JSObject *gobj;
         JSScript *script;
         JSBool ok;
     CODE:
@@ -1800,7 +1882,6 @@ jsc_call_in_context( cx, afunc, args, rcx, class )
         int av_length;
         jsval *arg_list;
         jsval context;
-        jsval jsproto;
         int cnt;
         AV *av;
         SV *val, *value;
@@ -1888,7 +1969,6 @@ jss_compile(cx, source)
     char *source;
     PREINIT:
         PJS_Script *psc;
-        JSScript *script;
         uintN line = 0; /* May be uninitialized by some compilers */
     CODE:
         Newz(1, psc, 1, PJS_Script);

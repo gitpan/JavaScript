@@ -1,9 +1,10 @@
 TYPEMAP
-PJS_Runtime *	T_PTRREF
-PJS_Context *	T_PTRREF
-PJS_Script *	T_PTRREF
-jsval			jsval
-JSFunction *    T_PTROBJ
+PJS_Runtime *	        T_PTRREF
+PJS_Context *	        T_PTRREF
+PJS_Script *	        T_PTRREF
+JSFunction *            T_PTROBJ
+PJS_InterruptHandler *  T_PTRREF
+jsval			        jsval
 
 OUTPUT
 jsval

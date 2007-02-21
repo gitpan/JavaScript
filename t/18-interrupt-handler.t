@@ -41,5 +41,5 @@ isnt($count, 0);
 
 my $aborted = 0;
 $rt1->set_interrupt_handler(sub { $aborted++; return 0; });
-$cx1->eval(q!2;!);
+$cx1->eval(q!2; "foo";!);
 is($aborted, 1);

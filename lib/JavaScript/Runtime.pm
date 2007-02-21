@@ -3,23 +3,54 @@ package JavaScript::Runtime;
 use strict;
 use warnings;
 
+use Carp qw(croak);
+
 use JavaScript;
 
 sub new {
-    my ($pkg, $maxbytes) = @_;
+    my ($pkg, @args) = @_;
 
     $pkg = ref $pkg || $pkg;
-    
-    $maxbytes = $JavaScript::MAXBYTES unless(defined $maxbytes);
 
+    my $maxbytes = $JavaScript::MAXBYTES;
+	$maxbytes = shift @args if (@args && $args[0] =~ /^\d+$/);
+	
+	my @does;
+	for (@args) {
+		if (my ($type) = $_ =~ /^-(\w+)$/) {
+			my $does = "JavaScript::Runtime::" . $type;
+			if (!exists $JavaScript::Runtime::{$type . '::'}) {
+				eval "require $does;";
+				croak $@ if $@;
+			}
+			push @does, $does;
+		}
+	}
+	
     my $runtime = jsr_create($maxbytes);
-    my $self = bless { _impl => $runtime }, $pkg;
-    
+    my $self = bless { _impl => $runtime, _does => \@does }, $pkg;
+   
+	for (@does) {
+		my $init = $_->can('_init');
+		$init->($self) if $init;
+	}
+ 
     return $self;
 }
 
 sub _destroy {
     my $self = shift;
+
+	for (@{$self->{_does}}) {
+		my $destroy = $_->can('_destroy');
+		$destroy->($self);
+	}
+	
+	if ($self->{_perl_interrupt_handler}) {
+		# Remove the current one
+		$self->set_interrupt_handler();
+	}
+
     return unless $self->{'_impl'};
     jsr_destroy($self->{'_impl'});
     delete $self->{'_impl'};
@@ -29,7 +60,6 @@ sub _destroy {
 sub DESTROY {
     my ($self) = @_;
     $self->_destroy();
-    delete $self->{_error_handler};
 }
 
 sub create_context {
@@ -41,15 +71,51 @@ sub create_context {
     return $context;
 }
 
+sub _add_interrupt_handler {
+	my ($self, $handler) = @_;
+	jsr_add_interrupt_handler($self->{_impl}, $handler);
+}
+
+sub _remove_interrupt_handler {
+	my ($self, $handler) = @_;
+	jsr_remove_interrupt_handler($self->{_impl}, $handler);	
+}
+
 sub set_interrupt_handler {
-    my ($rt, $handler) = @_;
+    my ($self, $handler) = @_;
 
     if ($handler && ref $handler eq '') {
         my $caller_pkg = caller;
         $handler = $caller_pkg->can($handler);
     }
     
-    jsr_set_interrupt_handler($rt->{_impl}, $handler);
+	if ($handler) {
+		$self->{_perl_interrupt_handler} = jsr_init_perl_interrupt_handler($handler);
+		$self->_add_interrupt_handler($self->{_perl_interrupt_handler});
+		
+	}
+	elsif ($self->{_perl_interrupt_handler}) {
+		$self->_remove_interrupt_handler($self->{_perl_interrupt_handler});
+		jsr_destroy_perl_interrupt_handler($self->{_perl_interrupt_handler});
+		delete $self->{_perl_interrupt_handler};
+	}
+	
+	1;
+}
+
+our $AUTOLOAD;
+sub AUTOLOAD {
+	my $self = shift;
+	my ($method_name) = $AUTOLOAD =~ /::([A-Za-z0-9_]+)$/;
+	
+	for my $does (@{$self->{_does}}) {
+		if (defined (my $method = $does->can($method_name))) {
+			return $method->($self, @_);
+		}
+	}
+	
+	my $isa = join(", ", @{$self->{_does}});
+	croak "Can't call method '$method_name' because it's not defined in $isa";
 }
 
 1;
@@ -123,9 +189,21 @@ Creates a runtime and returns a pointer to a C<PJS_Runtime> structure.
 
 Destorys the runtime and deallocates the memory occupied by it.
 
-=item jsr_set_interrupt_handler ( PJS_Runtime *runtime, SV *handler)
+=item jsr_add_interrupt_handler ( PJS_Runtime *runtime, PJS_InterruptHandler *handler )
 
-Attaches an interrupt handler to the runtime. No check is made to see if I<handler> is a valid SVt_PVCV.
+Adds an interrupt handler. 
+
+=item jsr_remove_interrupt_handler ( PJS_Runtime *runtime, PJS_InterruptHandler *handler )
+
+Removes an interrupt handler
+
+=item jsr_init_perl_interrupt_handler ( CV *callback )
+
+Initializes a new Perl level interrupt handler.
+
+=item jsr_destroy_perl_interrupt_handler ( PJS_InterruptHandler *handler )
+
+Destroys a Perl level interrupt handler
 
 =back
 

@@ -6,11 +6,15 @@ use Test::More;
 use Test::Exception;
 
 use File::Spec;
+use JavaScript;
 
-eval "require Inline::C";
-plan skip_all => "Inline::C is required for testing C-level interrupt handlers" if @$;	
+use strict;
+use warnings;
 
-use base qw(JavaScript::Runtime);
+BEGIN {
+    eval "require Inline::C";
+    plan skip_all => "Inline::C is required for testing C-level interrupt handlers" if $@;
+}
 
 my $typemap = File::Spec->catfile($ENV{PWD}, 'typemap');
 my $inc = do {
@@ -26,99 +30,97 @@ use Inline Config => FORCE_BUILD => 1;
 
 Inline->bind('C' => <<'END_OF_CODE', TYPEMAPS => $typemap, INC => $inc,	AUTO_INCLUDE => '#include "JavaScript.h"');
 
-struct PJS_Runtime_Opcount {
+struct Opcount {
 	int	cnt;
 	int limit;
 };
 
-typedef struct PJS_Runtime_Opcount PJS_Runtime_Opcount;
+typedef struct Opcount Opcount;
 
-static JSTrapStatus _opcounting_interrupt_handler(JSContext *cx, JSScript *script, jsbytecode *pc, jsval *rval, void *closure) {
-	PJS_Runtime *rt = closure;
-	PJS_Runtime_Opcount *opcnt = (PJS_Runtime_Opcount *) rt->ext;
+static JSTrapStatus Opcount_interrupt_handler(JSContext *cx, JSScript *script, jsbytecode *pc, jsval *rval, void *data) {
+	Opcount * opcnt = (Opcount *) data;
 	opcnt->cnt++;
 	if ( opcnt->limit != 0 && opcnt->cnt > opcnt->limit ) {
-	      croak("oplimit has been exceeded");
+		sv_setsv(ERRSV, newSVpv("opcount limit exceeded", 0));
+		return JSTRAP_ERROR;
 	}
 	
 	return JSTRAP_CONTINUE;
 }
 
-void _init_runtime(PJS_Runtime *rt) {
-	PJS_Runtime_Opcount *opcnt;
+PJS_InterruptHandler * 
+_init_interrupt_handler() {
+	PJS_InterruptHandler *handler;
+	Opcount *opcnt;
 	
-	Newz(1, opcnt, 1, PJS_Runtime_Opcount);
+	Newz(1, handler, 1, PJS_InterruptHandler);
+	Newz(1, opcnt, 1, Opcount);
 	
 	opcnt->cnt = 0;
 	opcnt->limit = 100;
 	
-	rt->ext = (void *) opcnt;
-	
-	/* Set interrupt handler */
-	JS_SetInterrupt(rt->rt, _opcounting_interrupt_handler, rt);
+	handler->handler = Opcount_interrupt_handler;
+	handler->data = (void *) opcnt;
+
+	return handler;
 }
 
-void _destroy_runtime(PJS_Runtime *rt) {
-	JSTrapHandler 	trap_handler;
-    void 			*ptr;
-
-    JS_ClearInterrupt(rt->rt, &trap_handler, &ptr);
-    
-	Safefree(rt->ext);
-	rt->ext = NULL;
+void _destroy_interrupt_handler(PJS_InterruptHandler *handler) {
+	Safefree(handler->data);
+	Safefree(handler);
 }
 
-void _set_opcnt(PJS_Runtime *rt, int cnt) {
-	((PJS_Runtime_Opcount *) rt->ext)->cnt = cnt;
+void _set_opcnt(PJS_InterruptHandler *handler, int cnt) {
+	((Opcount *) handler->data)->cnt = cnt;
 }
 
-int _get_opcnt(PJS_Runtime *rt) {
-	return ((PJS_Runtime_Opcount *) rt->ext)->cnt;
+int _get_opcnt(PJS_InterruptHandler *handler) {
+	return ((Opcount *) handler->data)->cnt;
 }
 
-void _set_oplimit(PJS_Runtime *rt, int limit) {
-	((PJS_Runtime_Opcount *) rt->ext)->limit = limit;
+void _set_oplimit(PJS_InterruptHandler *handler, int limit) {
+	((Opcount *) handler->data)->limit = limit;
 }
 
-int _get_oplimit(PJS_Runtime *rt) {
-	return ((PJS_Runtime_Opcount *) rt->ext)->limit;
+int _get_oplimit(PJS_InterruptHandler *handler) {
+	return ((Opcount *) handler->data)->limit;
 }
 END_OF_CODE
 
-sub new {
-	my $pkg = shift;
-	$self = $pkg->SUPER::new(@_);
-	_init_runtime($self->{_impl});
-	return $self;
+sub _init {
+	my $rt = shift;
+	my $interrupt = _init_interrupt_handler();
+	$rt->_add_interrupt_handler($interrupt);
+	$rt->{_Opcounted} = $interrupt;
 }
 
-sub DESTROY {
-	my $self = shift;
-	_destroy_runtime($self->{_impl});
-	$self->SUPER::DESTROY();
+sub _destroy {
+	my $rt = shift;
+	$rt->_remove_interrupt_handler($rt->{_Opcounted});
+	_destroy_interrupt_handler($rt->{_Opcounted});
 }
 
 sub oplimit {
-	my $self = shift;
+	my $rt = shift;
 	
 	if (@_) {
-		_set_oplimit($self->{_impl}, shift);
+		_set_oplimit($rt->{_Opcounted}, shift);
 	}
-	return _get_oplimit($self->{_impl});
+	return _get_oplimit($rt->{_Opcounted});
 }
 
 sub opcnt {
-	my $self = shift;
+	my $rt = shift;
 	
 	if (@_) {
-		_set_opcnt($self->{_impl}, shift);
+		_set_opcnt($rt->{_Opcounted}, shift);
 	}
-	return _get_opcnt($self->{_impl});
+	return _get_opcnt($rt->{_Opcounted});
 }
 
-plan tests => 5;
+plan tests => 8;
 
-my $runtime = JavaScript::Runtime::Opcounted->new();
+my $runtime = JavaScript::Runtime->new(qw(-Opcounted));
 my $context = $runtime->create_context();
 
 is($runtime->opcnt, 0, 'opcnt is 0');
@@ -127,11 +129,23 @@ is($runtime->oplimit, 100, 'oplimit is 100');
 $context->eval("1+1");
 isnt($runtime->opcnt, 0, "opcnt is > 0. Currently at: " . $runtime->opcnt);
 
-eval {
-	$context->eval("for(v = 0; v < 100; v++) { 1 + 1; }");
-};
+$context->eval("for(v = 0; v < 100; v++) { 1 + 1; }");
 ok($@, "Threw exception");
 like($@, qr/exceeded/);
+
+# Reset since we're going to try stacked
+$runtime->opcnt(0);
+$runtime->oplimit(0);
+
+my $count = 0;
+$runtime->set_interrupt_handler(sub { $count++; });
+$context->eval("1 + 1;");
+ok($runtime->opcnt, "Opcounter works");
+ok($count, "Perl level works");
+
+throws_ok {
+	$runtime->foo();
+} qr/Can't call method/;
 
 1;
 

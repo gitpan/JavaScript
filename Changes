@@ -1,75 +1,93 @@
 Revision history for Perl extension JavaScript.
 
+1.03 ...
+    - Honor value of JS_ENABLE_E4X
+    - Improved README
+    - Added CREDITS
+    - Remove unused variables to silence some cc warnings
+    - Remove ; from #include directive that can cause compilation warning (Fotango)
+    - Skip t/24-c-level-interrupt-handler.t if Inline::C is not installed (Fotango)
+    - Added module Test::JavaScript::More that's like Test::More but for JavaScript (Fotango)
+    - Added support extending JavaScript::Runtime. This obsoletes "(void *) ext" field in PJS_Runtime and PJS_Context.
+    - Added support for multple interrupt handlers. One at perl level and unlimited at C level.
+    - A report->linebuf that's NULL should be undefined and not an empty string (Fotango)
+    - Use SvPVutf8 macro instead of accessing via sv_2svutf8 (Fotango)
+    - Added JavaScript->supports(@features) to check feature support such as e4x, ut8, threading.
+    - Added does_support_utf8, does_support_threading and does_support_e4x. But really one should
+      be using the method above.
+    - Bridge E4X objects into perl space as strings (Fotango)
+    - Allow building with debug symbols (set JS_DEBUG to a true value) (Fotango)
+    - Allow setting JS_THREADSAFE and JS_UTF8 to true/false to avoid the prompts (Fotango)
+
 1.02 Mon Feb 12 2007
-        - Makefile.PL now generates a JavaScript_Env.h that sets correct defines and includes correct headers
-        - Structs, macros etc are now in a JavaScript.h
-        - Header files and typemap is now installed with module
-	- Added ext field (void *) to PJS_Runtime and PJS_Context that can be used custom stuff
+    - Makefile.PL now generates a JavaScript_Env.h that sets correct defines and includes correct headers
+    - Structs, macros etc are now in a JavaScript.h
+    - Header files and typemap is now installed with module
+    - Added ext field (void *) to PJS_Runtime and PJS_Context that can be used custom stuff
 			
 1.01 Mon Feb 12 2007
-        - Added support for detecting DarwinPorts [rt.cpan.org #14910]
-        - Added missing test for converting JavaScript booleans -> Perl
-        - Integrated patch that fixes compilation problems on Debian (Toru Yamaguchi, Daniel Burke)
-        - Cleaned up TODO
+    - Added support for detecting DarwinPorts [rt.cpan.org #14910]
+    - Added missing test for converting JavaScript booleans -> Perl
+    - Integrated patch that fixes compilation problems on Debian (Toru Yamaguchi, Daniel Burke)
+    - Cleaned up TODO
 
 1.00 Mon Sep 4 2006
-        - Release of 1.00
+    - Release of 1.00
 
 1.00_02 Sat Aug 19 2006
-        - Incorporated patch to support new SpiderMokey installation-scheme in Debian [rt.cpan.org #18152]
-        - Passing ERRSV to SVToJSVAL doesn't seem to be safe so we'll pass a copy instead (Tom Insam)
-        - Cleaning up some internal function names
+    - Incorporated patch to support new SpiderMokey installation-scheme in Debian [rt.cpan.org #18152]
+    - Passing ERRSV to SVToJSVAL doesn't seem to be safe so we'll pass a copy instead (Tom Insam)
+    - Cleaning up some internal function names
 
 1.00_01 Tue Jul 11 2006
-        - Fixed invocation of methods on objects
-        - Added support for "static" methods of classes, i.e. "Test.foo(...)" should now work
-        - Added support for "static" properties of classes, i.e. "Test.bar = 10"; should now work
-        - get_engine_version now returns a list in list context with (engine, version and date of build)
-        - You can now attach a custom interrupt handler to a runtime for tracing stuff
-        - Added more tests
-        - Integrated fixes by Fotango (pathes by Chia-liang Kao, Tom Insam, James Duncan)
-                - Support for UTF8 in scripts if SpiderMonkey can handle it
-                - bind_value in JavaScript::Context
-                - Encapsulate returned JavaScript functions as JavaScript::Function objects
-                - Better exception handling
-                - Unitialized line variable in jss_compile
-                - Make sure JavaScript::Context->can also handles undefined values
-                - Lots or more tests
-                - And lots more
+    - Fixed invocation of methods on objects
+    - Added support for "static" methods of classes, i.e. "Test.foo(...)" should now work
+    - Added support for "static" properties of classes, i.e. "Test.bar = 10"; should now work
+    - get_engine_version now returns a list in list context with (engine, version and date of build)
+    - You can now attach a custom interrupt handler to a runtime for tracing stuff
+    - Added more tests
+    - Integrated fixes by Fotango (pathes by Chia-liang Kao, Tom Insam, James Duncan)
+        - Support for UTF8 in scripts if SpiderMonkey can handle it
+        - bind_value in JavaScript::Context
+        - Encapsulate returned JavaScript functions as JavaScript::Function objects
+        - Better exception handling
+        - Unitialized line variable in jss_compile
+        - Make sure JavaScript::Context->can also handles undefined values
+        - Lots or more tests
+        - And lots more
 
 0.55 Wed Jun 30 9:05:00 CET 2005
-        - Fixed error handling (patch by G. Allen Morris III)
+    - Fixed error handling (patch by G. Allen Morris III)
 
 0.54 Tue Jun 29 11:50:00 CET 2005
-        - Make Makefile.PL play happy games with Gentoo (patch by sungo)
+    - Make Makefile.PL play happy games with Gentoo (patch by sungo)
 
 0.53 Fri Mar 18 19:49:25 CET 2005 (Joost Diepenmaat)
-        - Added JS_THREADSAFE define, which fixed bug on perl 5.8.5
-          thread-multi linux
-        - added tests for debian spidermonkey libs (debian users can
-          now do "apt-get install libsmjs-dev" and compile the module)
-        - Added JS_PROP_ACCESSOR
-        - Added conversion of boolean values from JS to Perl
-        - moved JS_THREADSAFE to Makefile.PL and made code handle handle
-          both cases (though it appears to be mandatory to get the code
-          to run on perl 5.8.6 threaded and unthreaded)
-        - Fixed a couple of alloc()s
+    - Added JS_THREADSAFE define, which fixed bug on perl 5.8.5
+      thread-multi linux
+    - added tests for debian spidermonkey libs (debian users can
+      now do "apt-get install libsmjs-dev" and compile the module)
+    - Added JS_PROP_ACCESSOR
+    - Added conversion of boolean values from JS to Perl
+    - moved JS_THREADSAFE to Makefile.PL and made code handle handle
+      both cases (though it appears to be mandatory to get the code
+      to run on perl 5.8.6 threaded and unthreaded)
+    - Fixed a couple of alloc()s
     
-0.52  Sat Aug 11 22:47:00 2001
-	- Added can method to JavaScript::Context
-	- Removed the need of passing the JSClass name to bind_object
-	- Fixed issues with package
-	- Fixed return from call
-	- Brought docs up to sync with implementation
+0.52 Sat Aug 11 22:47:00 2001
+    - Added can method to JavaScript::Context
+    - Removed the need of passing the JSClass name to bind_object
+    - Fixed issues with package
+    - Fixed return from call
+    - Brought docs up to sync with implementation
 
-0.51  Thu Jul 26 12:01:00 2001
-	- Changed new_context to create_context to match documentation
-	- Changed create_context to not try and take named arguments
+0.51 Thu Jul 26 12:01:00 2001
+    - Changed new_context to create_context to match documentation
+    - Changed create_context to not try and take named arguments
 
-0.5   Wed Jul 25 14:20:10 2001
-	- First public release
-
-0.01  Mon Mar 19 09:51:10 2001
-	- original version; created by h2xs 1.21 with options
-		-f -n JavaScript
-
+0.5 Wed Jul 25 14:20:10 2001
+    - First public release
+    
+0.01 Mon Mar 19 09:51:10 2001
+    - original version; created by h2xs 1.21 with options
+        -f -n JavaScript

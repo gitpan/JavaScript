@@ -23,7 +23,7 @@ our @EXPORT_OK = (@EXPORT);
 
 our %EXPORT_TAGS = ( all => [@EXPORT_OK] );
 
-our $VERSION = '1.02';
+our $VERSION = '1.03';
 
 our $MAXBYTES = 1024 ** 2;
 our $STACKSIZE = 32 * 1024;
@@ -46,8 +46,31 @@ sub get_engine_version {
     return $version_str;
 }
 
-sub does_handle_utf8 {
-    return js_does_handle_utf8();
+sub does_support_utf8 {
+    return js_does_support_utf8();
+	
+}
+# Alias to not break backwards compability
+*does_handle_utf8 = \&does_support_utf8;
+
+sub does_support_e4x {
+	return js_does_support_e4x();
+}
+
+sub does_support_threading {
+	return js_does_support_threading();
+}
+
+sub supports {
+    my $pkg = shift;
+	
+    for (@_) {
+        my $does = JavaScript->can("does_support_" . lc($_));
+        croak "I don't know about '$_'" if !defined $does;
+        return 0 if !$does->();
+    }
+		
+    return 1;
 }
 
 bootstrap JavaScript $VERSION;
@@ -110,9 +133,26 @@ In scalar context it returns a string describing the engine such as C<JavaScript
 
 In list context it returns the separate parts of the string - engine, version and date of build.
 
+=item does_support_utf8
+
 =item does_handle_utf8
 
 Returns a true value if SpiderMonkey is compiled with support for UTF8 strings and if we're using it.
+B<does_handle_utf8> is also supported for backwards compability.
+
+=item does_support_e4x
+
+Returns a true value if we have compiled support for E4X.
+
+=item does_support_threading
+
+Returns a true value if we have compiled support for threading.
+
+=item supports ( @features )
+
+Checks if all features given in I<@features> are present. Is case insensitive. Supported keys are 
+B<e4x>, B<utf8> and B<threading>. Extensions to this module may provide additional keys by implementing 
+a method that begins with C<does_support_>.
 
 =back
 
@@ -126,9 +166,17 @@ Returns a true value if SpiderMonkey is compiled with support for UTF8 strings a
 
 Returns a string with the output of C<JS_GetImplementationVersion()>.
 
-=item js_does_handle_utf8
+=item js_does_support_utf8
 
-Returns C<PL_sv_true> if we have compiled SpiderMonkey with C<JS_C_STRINGS_ARE_UTF8>. Otherwise returns C<PL_sv_no>.
+Returns C<PL_sv_yes> if we have compiled SpiderMonkey with C<JS_C_STRINGS_ARE_UTF8>. Otherwise returns C<PL_sv_no>.
+
+=item js_does_support_e4x
+
+Returns C<PL_sv_yes> if we have compiled support for E4X. Otherwise returns C<PL_sv_no>.
+
+=item js_does_support_threading
+
+Returns C<PL_sv_yes> if we have compiled support for threading. Otherwise returns C<PL_sv_no>.
 
 =back
 
@@ -140,20 +188,9 @@ There is a mailing-list available at L<http://lists.cpan.org/showlist.cgi?name=p
 
 You may subscribe to the list by sending an empty e-mail to C<perl-javascript-subscribe@perl.org>
 
-=head1 CREDITS & THANKS
+=head1 CREDITS
 
-Chia-liang Kao, Tom Insam and James Duncan at Fotango Ltd. for fixing even more stuff
-that I could ever imagine such as error handling, returing javascript functions to Perl etc.
-
-Joost Diepenmaat for fixing lots of stuff.
-
-sungo for providing Makefile.Pl fixes for Gentoo Linux.
-
-G. Allen Morris III for fixing error handling.
-
-Mozilla.org and Netscape for the excellent SpiderMonkey engine.
-
-#perl on irc.infobot.org for feedback and help.
+See L<CREDITS>
 
 =head1 BUGS AND LIMITATIONS
 
@@ -167,7 +204,7 @@ Claes Jakobsson C<< <claesjac@cpan.org> >>
 
 =head1 LICENCE AND COPYRIGHT
 
-Copyright (c) 2001 - 2006, Claes Jakobsson C<< <claesjac@cpan.org> >>. All rights reserved.
+Copyright (c) 2001 - 2007, Claes Jakobsson C<< <claesjac@cpan.org> >>. All rights reserved.
 
 This module is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself. See L<perlartistic>.
