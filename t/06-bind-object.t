@@ -12,13 +12,13 @@ use JavaScript;
 sub new { return bless {}, __PACKAGE__; }
 
 sub bar { 
-	my $self = shift; 
-	return 5;
+    my $self = shift; 
+    return 5;
 }
 
 sub baz { 
-	my $self = shift; 
-	return "five"; 
+    my $self = shift; 
+    return "five"; 
 }
 
 sub getWrap {

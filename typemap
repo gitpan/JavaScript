@@ -1,18 +1,18 @@
 TYPEMAP
-PJS_Runtime *	        T_PTRREF
-PJS_Context *	        T_PTRREF
-PJS_Script *	        T_PTRREF
+PJS_Runtime *           T_PTRREF
+PJS_Context *           T_PTRREF
+PJS_Script *            T_PTRREF
 JSFunction *            T_PTROBJ
-PJS_InterruptHandler *  T_PTRREF
-jsval			        jsval
+PJS_TrapHandler *  T_PTRREF
+jsval                   jsval
 
 OUTPUT
 jsval
     {
         SV *orz = sv_newmortal();
         /* Convert js value to perl */
-        JSVALToSV(cx->cx, NULL, $var, &orz);
+        JSVALToSV(PJS_GetJSContext(cx), NULL, $var, &orz);
         sv_setsv($arg, orz);
-        JS_GC(cx->cx);
+        JS_GC(PJS_GetJSContext(cx));
     }
             

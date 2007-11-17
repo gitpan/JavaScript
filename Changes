@@ -1,6 +1,24 @@
 Revision history for Perl extension JavaScript.
 
-1.03 ...
+1.04 Sat Nov 17 2007
+    - Skip exception tests on engines less than 1.7 since these seem to be broken.
+    - Free memory allocated by JS_smprintf when converting from utf8 strings (spotted by Ash Berlin)
+    - Don't call js_ValueToXMLString but instead call JS method "toXMLString" on the object [rt.cpan.org #26411]
+    - Convert 64bit Perl ints to JSDouble if they are too big to fit in JS ints [rt.cpan.org #26474] (Niko Tyni)
+    - Add more include paths when building on debian [rt.cpan.org #26411] (Niko Tyni)
+    - Fix typo in exceptions.c that didn't get global object correctly [rt.cpan.org #26411] (Niko Tyni)
+    - Use JS_ExecuteScript instead of js_Execute [rt.cpan.org #26411] (Niko Tyni)
+    - Allow keys/properties to be unicode (Fotango)
+    - Object construction can now throw exceptions and it'll propagate to JS space [rt.cpan.org #26215]
+    - Handle recursive structures better (Fotango)
+    - Specify $(O_FILES) instead as a list of .o files as Writefile(OBJECT => ...)
+    - Use JS_CallFunction instead of js_InternalCall so we can link aginst libjs build with hidden internals [rt.cpan.org #26411]
+    - Remove support for custom stacksize since it's not what we thought it was (Fotango)
+    - Add tests for exceptions (Fotango)
+    - Split up giant .XS file into smaller pieces
+    - Added CREDITS to MANIFEST so it's bundled with the distribution
+    
+1.03 Wed Feb 21 2007
     - Honor value of JS_ENABLE_E4X
     - Improved README
     - Added CREDITS
@@ -24,7 +42,7 @@ Revision history for Perl extension JavaScript.
     - Structs, macros etc are now in a JavaScript.h
     - Header files and typemap is now installed with module
     - Added ext field (void *) to PJS_Runtime and PJS_Context that can be used custom stuff
-			
+            
 1.01 Mon Feb 12 2007
     - Added support for detecting DarwinPorts [rt.cpan.org #14910]
     - Added missing test for converting JavaScript booleans -> Perl

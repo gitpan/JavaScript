@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 18;
+use Test::More tests => 19;
 
 use strict;
 use warnings;
@@ -57,7 +57,11 @@ function test_array(v1, v2) {
     ok(v1.length == 0 &&
        v1.toString() == "", "Empty array");
     ok(v2.length == 3 &&
-       v2.toString() == "1,2,3", "Array")
+       v2.toString() == "1,2,3", "Array is " + v2.toString());
+    
+    scratch = "";
+    for (x in v2) scratch += x;
+    ok( scratch == '012', "Indexes are in the right order ("+ scratch + ")" );
 }
 
 function test_hash(v1, v2) {

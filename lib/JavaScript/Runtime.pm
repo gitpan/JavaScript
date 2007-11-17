@@ -13,27 +13,27 @@ sub new {
     $pkg = ref $pkg || $pkg;
 
     my $maxbytes = $JavaScript::MAXBYTES;
-	$maxbytes = shift @args if (@args && $args[0] =~ /^\d+$/);
-	
-	my @does;
-	for (@args) {
-		if (my ($type) = $_ =~ /^-(\w+)$/) {
-			my $does = "JavaScript::Runtime::" . $type;
-			if (!exists $JavaScript::Runtime::{$type . '::'}) {
-				eval "require $does;";
-				croak $@ if $@;
-			}
-			push @does, $does;
-		}
-	}
-	
+    $maxbytes = shift @args if (@args && $args[0] =~ /^\d+$/);
+    
+    my @does;
+    for (@args) {
+        if (my ($type) = $_ =~ /^-(\w+)$/) {
+            my $does = "JavaScript::Runtime::" . $type;
+            if (!exists $JavaScript::Runtime::{$type . '::'}) {
+                eval "require $does;";
+                croak $@ if $@;
+            }
+            push @does, $does;
+        }
+    }
+    
     my $runtime = jsr_create($maxbytes);
     my $self = bless { _impl => $runtime, _does => \@does }, $pkg;
    
-	for (@does) {
-		my $init = $_->can('_init');
-		$init->($self) if $init;
-	}
+    for (@does) {
+        my $init = $_->can('_init');
+        $init->($self) if $init;
+    }
  
     return $self;
 }
@@ -41,15 +41,15 @@ sub new {
 sub _destroy {
     my $self = shift;
 
-	for (@{$self->{_does}}) {
-		my $destroy = $_->can('_destroy');
-		$destroy->($self);
-	}
-	
-	if ($self->{_perl_interrupt_handler}) {
-		# Remove the current one
-		$self->set_interrupt_handler();
-	}
+    for (@{$self->{_does}}) {
+        my $destroy = $_->can('_destroy');
+        $destroy->($self);
+    }
+    
+    if ($self->{_perl_interrupt_handler}) {
+        # Remove the current one
+        $self->set_interrupt_handler();
+    }
 
     return unless $self->{'_impl'};
     jsr_destroy($self->{'_impl'});
@@ -63,22 +63,23 @@ sub DESTROY {
 }
 
 sub create_context {
-    my ($self, $stacksize) = @_;
-
-    $stacksize = $JavaScript::STACKSIZE unless(defined($stacksize));
-    my $context = JavaScript::Context->new($self, $stacksize);
+	my $self = shift;
+	
+	warn "Requesting a custom stacksize is not longer supported" if @_ && $_[0];
+	
+    my $context = JavaScript::Context->new($self);
 
     return $context;
 }
 
 sub _add_interrupt_handler {
-	my ($self, $handler) = @_;
-	jsr_add_interrupt_handler($self->{_impl}, $handler);
+    my ($self, $handler) = @_;
+    jsr_add_interrupt_handler($self->{_impl}, $handler);
 }
 
 sub _remove_interrupt_handler {
-	my ($self, $handler) = @_;
-	jsr_remove_interrupt_handler($self->{_impl}, $handler);	
+    my ($self, $handler) = @_;
+    jsr_remove_interrupt_handler($self->{_impl}, $handler); 
 }
 
 sub set_interrupt_handler {
@@ -89,33 +90,33 @@ sub set_interrupt_handler {
         $handler = $caller_pkg->can($handler);
     }
     
-	if ($handler) {
-		$self->{_perl_interrupt_handler} = jsr_init_perl_interrupt_handler($handler);
-		$self->_add_interrupt_handler($self->{_perl_interrupt_handler});
-		
-	}
-	elsif ($self->{_perl_interrupt_handler}) {
-		$self->_remove_interrupt_handler($self->{_perl_interrupt_handler});
-		jsr_destroy_perl_interrupt_handler($self->{_perl_interrupt_handler});
-		delete $self->{_perl_interrupt_handler};
-	}
-	
-	1;
+    if ($handler) {
+        $self->{_perl_interrupt_handler} = jsr_init_perl_interrupt_handler($handler);
+        $self->_add_interrupt_handler($self->{_perl_interrupt_handler});
+        
+    }
+    elsif ($self->{_perl_interrupt_handler}) {
+        $self->_remove_interrupt_handler($self->{_perl_interrupt_handler});
+        jsr_destroy_perl_interrupt_handler($self->{_perl_interrupt_handler});
+        delete $self->{_perl_interrupt_handler};
+    }
+    
+    1;
 }
 
 our $AUTOLOAD;
 sub AUTOLOAD {
-	my $self = shift;
-	my ($method_name) = $AUTOLOAD =~ /::([A-Za-z0-9_]+)$/;
-	
-	for my $does (@{$self->{_does}}) {
-		if (defined (my $method = $does->can($method_name))) {
-			return $method->($self, @_);
-		}
-	}
-	
-	my $isa = join(", ", @{$self->{_does}});
-	croak "Can't call method '$method_name' because it's not defined in $isa";
+    my $self = shift;
+    my ($method_name) = $AUTOLOAD =~ /::([A-Za-z0-9_]+)$/;
+    
+    for my $does (@{$self->{_does}}) {
+        if (defined (my $method = $does->can($method_name))) {
+            return $method->($self, @_);
+        }
+    }
+    
+    my $isa = join(", ", @{$self->{_does}});
+    croak "Can't call method '$method_name' because it's not defined in $isa";
 }
 
 1;
@@ -145,11 +146,9 @@ defaults to 1MB.
 
 =over 4
 
-=item create_context ( $stacksize )
+=item create_context ()
 
-Creates a new C<JavaScript::Context>-object in the runtime. The optional argument
-I<$stacksize> specifies number of bytes to allocate for the execution stack for the
-script. If omitted it defaults to 32KB.
+Creates a new C<JavaScript::Context>-object in the runtime. 
 
 =item set_interrupt_handler ( $handler )
 
@@ -189,11 +188,11 @@ Creates a runtime and returns a pointer to a C<PJS_Runtime> structure.
 
 Destorys the runtime and deallocates the memory occupied by it.
 
-=item jsr_add_interrupt_handler ( PJS_Runtime *runtime, PJS_InterruptHandler *handler )
+=item jsr_add_interrupt_handler ( PJS_Runtime *runtime, PJS_TrapHandler *handler )
 
 Adds an interrupt handler. 
 
-=item jsr_remove_interrupt_handler ( PJS_Runtime *runtime, PJS_InterruptHandler *handler )
+=item jsr_remove_interrupt_handler ( PJS_Runtime *runtime, PJS_TrapHandler *handler )
 
 Removes an interrupt handler
 
@@ -201,7 +200,7 @@ Removes an interrupt handler
 
 Initializes a new Perl level interrupt handler.
 
-=item jsr_destroy_perl_interrupt_handler ( PJS_InterruptHandler *handler )
+=item jsr_destroy_perl_interrupt_handler ( PJS_TrapHandler *handler )
 
 Destroys a Perl level interrupt handler
 

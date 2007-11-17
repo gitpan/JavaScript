@@ -10,7 +10,7 @@ use Test::More;
 
 sub _new {
     my $pkg = shift;
-	$pkg = ref $pkg || $pkg;
+    $pkg = ref $pkg || $pkg;
 
     my $self = bless {}, $pkg;
 
@@ -102,7 +102,9 @@ sub import {
   $string .= join "", <$fh>;
 
   $context->eval($string, $filename);
-  die "test error: ".$@->as_string if $@;
+  if ($@) {
+    die "test error: ".( ref($@) ? $@->as_string : $@ );
+  }
 
   exit;
 }

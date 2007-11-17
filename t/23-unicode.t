@@ -8,7 +8,7 @@ use warnings;
 use JavaScript;
 
 if (JavaScript->does_handle_utf8) {
-    plan tests => 5;
+    plan tests => 8;
 }
 else {
     plan skip_all => "No unicode support in SpiderMonkey";
@@ -26,4 +26,18 @@ is( $context->eval(q!copy!), "\x{a9}", "got &copy;" );
 
 $context->bind_value( copy2 => "\251" );
 is( $context->eval(q!copy2!), "\x{a9}", "got &copy;" );
+
+# utf8 hash key in JS -> perl
+$context->bind_value( ucopy => "\x{e9}" );
+my $hash = $context->eval("x = {}; x[ucopy] = 1; x;");
+my ($key) = keys %$hash;
+is( $key, "\xe9", "unicode hash keys" );
+
+# utf8 hash key in perl -> JS
+$context->bind_value( uhash => { "\x{e9}" => 1 } );
+is( $context->eval("uhash[ ucopy ]" ), 1, "unicode hash keys from perl" );
+
+$context->bind_value( uhash => { "\x{2668}" => 1 } );
+is( $context->eval("uhash[ ucopy ]" ), 1, "unicode hash keys from perl" );
+
 

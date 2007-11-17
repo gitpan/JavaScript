@@ -60,11 +60,11 @@ $cx1->bind_class(
 my $foo = new Foo();
 
 $cx1->bind_function(
-	name => 'print', 
-	func => sub { 
-		my $dt = shift; 
-		return undef; 
-	}
+    name => 'print', 
+    func => sub { 
+        my $dt = shift; 
+        return undef; 
+    }
 );
 
 $cx1->bind_object('FooSan', $foo);

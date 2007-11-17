@@ -8,10 +8,10 @@ use warnings;
 use JavaScript;
 
 if (JavaScript->does_support_e4x()) {
-	plan tests => 2;
+    plan tests => 2;
 }
 else {
-	plan skip_all => "No E4X available";
+    plan skip_all => "No E4X available";
 }
 
 

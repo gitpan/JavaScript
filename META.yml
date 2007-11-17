@@ -1,9 +1,9 @@
 --- #YAML:1.0
 name:                JavaScript
-version:             1.03
+version:             1.04
 abstract:            Perl extension for executing embedded JavaScript
 license:             perl
-generated_by:        ExtUtils::MakeMaker version 6.31
+generated_by:        ExtUtils::MakeMaker version 6.36
 distribution_type:   module
 requires:     
     Test::Exception:               0

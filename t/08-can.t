@@ -13,7 +13,7 @@ my $cx1 = $rt1->create_context();
 
 $cx1->eval(q!
 function test_func(a, b) {
-	return a * b + (a * b);
+    return a * b + (a * b);
 }
 
 not_a_func = [];

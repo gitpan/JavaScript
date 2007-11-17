@@ -23,10 +23,9 @@ our @EXPORT_OK = (@EXPORT);
 
 our %EXPORT_TAGS = ( all => [@EXPORT_OK] );
 
-our $VERSION = '1.03';
+our $VERSION = '1.04';
 
 our $MAXBYTES = 1024 ** 2;
-our $STACKSIZE = 32 * 1024;
 
 require JavaScript::Boxed;
 require JavaScript::Context;
@@ -48,28 +47,28 @@ sub get_engine_version {
 
 sub does_support_utf8 {
     return js_does_support_utf8();
-	
+    
 }
 # Alias to not break backwards compability
 *does_handle_utf8 = \&does_support_utf8;
 
 sub does_support_e4x {
-	return js_does_support_e4x();
+    return js_does_support_e4x();
 }
 
 sub does_support_threading {
-	return js_does_support_threading();
+    return js_does_support_threading();
 }
 
 sub supports {
     my $pkg = shift;
-	
+    
     for (@_) {
         my $does = JavaScript->can("does_support_" . lc($_));
         croak "I don't know about '$_'" if !defined $does;
         return 0 if !$does->();
     }
-		
+        
     return 1;
 }
 

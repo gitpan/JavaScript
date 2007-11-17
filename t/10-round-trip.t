@@ -59,13 +59,13 @@ my $foo = Foo->new();
 $foo->{std} = 10;
 
 $cx1->bind_function( name => 'debug',
-			 func => sub { warn Dumper(@_) } );
+             func => sub { warn Dumper(@_) } );
 $cx1->bind_function( name => 'isa_ok',
-			 func => sub { isa_ok($_[0], $_[1]) } );
+             func => sub { isa_ok($_[0], $_[1]) } );
 $cx1->bind_function( name => 'is',
-			 func => \&is );
+             func => \&is );
 $cx1->bind_function( name => 'get_foo',
-			 func => sub { bless { std => 5}, 'Foo' } );
+             func => sub { bless { std => 5}, 'Foo' } );
 
 $cx1->bind_object('FooSan', $foo);
 

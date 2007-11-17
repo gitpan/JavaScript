@@ -11,13 +11,11 @@ use JavaScript;
 my %Context;
 
 sub new {
-    my ($pkg, $runtime, $stacksize) = @_;
+    my ($pkg, $runtime) = @_;
 
     $pkg = ref $pkg || $pkg;
-    
-    $stacksize = $JavaScript::STACKSIZE unless(defined $stacksize);
 
-    my $cx_ptr = jsc_create($runtime->{_impl}, $stacksize);
+    my $cx_ptr = jsc_create($runtime->{_impl});
     
     my $self = bless { _impl => $cx_ptr }, $pkg;
 
@@ -97,7 +95,7 @@ sub bind_function {
 
     # Check for name
     die "Missing argument 'name'\n" unless(exists $args{name});
-# TODO: fix    die "Argument 'name' must match /^[A-Za-z0-9_]+\$/" unless($args{name} =~ /^[A-Za-z0-9\_]+$/);
+    # TODO: fix    die "Argument 'name' must match /^[A-Za-z0-9_]+\$/" unless($args{name} =~ /^[A-Za-z0-9\_]+$/);
 
     # Check for func
     die "Missing argument 'func'\n" unless(exists $args{func});
@@ -496,11 +494,11 @@ The handler is called when a script branches backwards during execution, when a 
 
 =over 4
 
-=item new ( $runtime, $stacksize )
+=item new ( $runtime )
 
 Creates a new C<JavaScript::Context>-object in the supplied runtime.
 
-=item jsc_create ( PCB_Runtime *runtime, int stacksize )
+=item jsc_create ( PCB_Runtime *runtime )
 
 Creates a new context and returns a pointer to a C<PJS_Context> structure.
 

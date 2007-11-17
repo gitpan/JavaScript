@@ -11,7 +11,7 @@ use JavaScript;
 
 my $count = 0;
 
-sub interrupt_handler {
+sub trap_handler {
     my ($cx, $op) = @_;
     $count++;
     return 1;
@@ -25,7 +25,7 @@ $cx1->eval(q!
 !);
 is($count, 0);
 
-$rt1->set_interrupt_handler(\&interrupt_handler);
+$rt1->set_interrupt_handler(\&trap_handler);
 $cx1->eval(q!2;!),
 isnt($count, 0);
 
@@ -35,7 +35,7 @@ $cx1->eval(q!2;!);
 is($count, 0);
 
 $count = 0;
-$rt1->set_interrupt_handler("interrupt_handler");
+$rt1->set_interrupt_handler("trap_handler");
 $cx1->eval(q!2;!);
 isnt($count, 0);
 
