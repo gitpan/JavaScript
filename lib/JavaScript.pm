@@ -1,6 +1,6 @@
 package JavaScript;
 
-use 5.006;
+use 5.008;
 
 use strict;
 use warnings;
@@ -23,7 +23,7 @@ our @EXPORT_OK = (@EXPORT);
 
 our %EXPORT_TAGS = ( all => [@EXPORT_OK] );
 
-our $VERSION = '1.04';
+our $VERSION = '1.05';
 
 our $MAXBYTES = 1024 ** 2;
 

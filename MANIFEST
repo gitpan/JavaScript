@@ -52,7 +52,6 @@ t/13-in-context.t
 t/14-roundtrip-function.t
 t/15-function.t
 t/16-object.t
-t/17-error-handler.t
 t/18-interrupt-handler.t
 t/19-engine-version.t
 t/20-bind-class.t

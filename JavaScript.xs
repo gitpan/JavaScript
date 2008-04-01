@@ -120,28 +120,6 @@ jsc_destroy(cx)
         RETVAL
 
 void
-jsc_set_error_handler(cx, handler)
-    PJS_Context *cx;
-    SV *handler;
-    CODE:
-        if (!SvOK(handler)) {
-            /* Remove handler */
-            if (cx->error_handler != NULL) {
-                SvREFCNT_dec(cx->error_handler);
-            }
-
-            cx->error_handler = NULL;
-            JS_SetErrorReporter(PJS_GetJSContext(cx), NULL);
-        }
-        else if (SvROK(handler) && SvTYPE(SvRV(handler)) == SVt_PVCV) {
-            if (cx->error_handler != NULL) {
-                SvREFCNT_dec(cx->error_handler);
-            }
-            cx->error_handler = SvREFCNT_inc(handler);
-            JS_SetErrorReporter(PJS_GetJSContext(cx), PJS_error_handler);
-        }
-
-void
 jsc_set_branch_handler(cx, handler)
     PJS_Context *cx;
     SV *handler;

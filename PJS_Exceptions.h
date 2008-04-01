@@ -19,9 +19,6 @@ extern "C" {
 PJS_EXTERN void
 PJS_report_exception(PJS_Context *);    
 
-PJS_EXTERN void
-PJS_error_handler(JSContext *, const char *, JSErrorReport *);
-
 #ifdef __cplusplus
 }
 #endif

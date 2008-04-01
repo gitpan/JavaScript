@@ -1,5 +1,13 @@
 Revision history for Perl extension JavaScript.
 
+1.05 Tue Apr 1 2008
+    - Drop support for error handlers
+    - This module now requires SpiderMonkey 1.7 or later.
+    - Makefile.PL now compiles a small test to see if libs and headers can be found
+    - Makefile.PL now discovers install locations on CentOS5 (Gavin Carr)
+    - Drop support for Perl 5.6.x and earlier because we need some API symbols not available there 
+      and they don't support unicode properly either. [rt.cpan.org #31114]
+      
 1.04 Sat Nov 17 2007
     - Skip exception tests on engines less than 1.7 since these seem to be broken.
     - Free memory allocated by JS_smprintf when converting from utf8 strings (spotted by Ash Berlin)

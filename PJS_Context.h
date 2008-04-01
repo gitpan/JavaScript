@@ -34,9 +34,6 @@ struct PJS_Context {
     PJS_Context *next;      /* Pointer to the next created context */
     PJS_Runtime *rt;
 
-    /* Set to a SVt_PVCV if we have an error handler */
-    SV *error_handler;
-
     /* Set to a SVt_PVCV if we have an branch handler */
     SV *branch_handler;
     
@@ -73,9 +70,6 @@ PJS_CreateContext(PJS_Runtime *runtime);
 
 PJS_EXTERN JSBool
 PJS_branch_handler(JSContext *, JSScript *);
-
-PJS_EXTERN void
-PJS_error_handler(JSContext *, const char *, JSErrorReport *);
 
 /*! @functiongroup Querying contexts */
 

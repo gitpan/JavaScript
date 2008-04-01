@@ -272,14 +272,6 @@ sub bind_value {
     return;
 }
 
-sub set_error_handler {
-    my ($self, $handler) = @_;
-
-    $handler = _resolve_method($handler, 1);
-    
-    jsc_set_error_handler($self->{_impl}, $handler);
-}
-
 sub set_branch_handler {
     my ($self, $handler) = @_;
 
@@ -470,14 +462,6 @@ is thrown in JavaScript this method returns undef and $@ is set.
 
 Returns the C<JavaScript::Context>-object associated with a given native context.
 
-=item set_error_handler ( $handler )
-
-Attaches an error handler (a function that is called when an error occurs) to the contex.
-The argument I<$handler> must be either a code-reference or the name of a subroutine in
-the calling package.
-
-To remove the handler call this method with an undefined argument.
-
 =item set_branch_handler ( $handler )
 
 Attaches an branch callback handler (a function that is called when a branch is performed) to the context. The argument I<$handler> may be a code-reference or the name of a subroutine.
@@ -537,10 +521,6 @@ Binds a function to the context.
 =item jsc_bind_value ( PJS_Context *context, char *parent, char *name, SV *object)
 
 Defines a new named property in I<parent> with the value of I<object>.
-
-=item jsc_set_error_handler ( PJS_Context *context, SV *handler )
-
-Attaches an exception handler to the context. No check is made to see if I<handler> is a valid SVt_PVCV.
 
 =item jsc_set_branch_handler ( PJS_Context *context, SV *handler )
 

@@ -29,28 +29,3 @@ void PJS_report_exception(PJS_Context *pcx) {
         }
     }
 }
-
-/* Called by context when we encounter an error */
-void PJS_error_handler(JSContext *cx, const char *message, JSErrorReport *report) {
-    dSP;
-    PJS_Context *context;
-    
-    context = PJS_GET_CONTEXT(cx);
-
-    if (context != NULL && context->error_handler) {
-        ENTER ;
-        SAVETMPS ;
-        PUSHMARK(SP) ;
-        XPUSHs(newSVpv(message, strlen(message)));
-        XPUSHs(newSVpv(report->filename, strlen(report->filename)));
-        XPUSHs(newSViv(report->lineno));
-        if (report->linebuf) {
-            XPUSHs(newSVpv(report->linebuf, strlen(report->linebuf)));
-        }
-        else {
-            XPUSHs(&PL_sv_undef);
-        }
-        PUTBACK;
-        perl_call_sv(SvRV(context->error_handler), G_DISCARD | G_VOID | G_EVAL);
-    }
-}
