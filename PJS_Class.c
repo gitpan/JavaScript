@@ -208,9 +208,7 @@ JSBool PJS_construct_perl_object(JSContext *cx, JSObject *obj, uintN argc, jsval
             /* We must have thrown an exception */
             return JS_FALSE;
         }
-        
-        SvREFCNT_inc(rsv);
-        
+                
         JS_SetPrivate(cx, obj, (void *) rsv); 
     }
 

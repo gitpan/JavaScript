@@ -2,7 +2,7 @@
 
 package Foo;
 
-use Test::More tests => 23;
+use Test::More tests => 25;
 
 use Test::Exception;
 
@@ -42,7 +42,21 @@ my $rt1 = JavaScript::Runtime->new();
                      package => "Foo",
                  );
     my $p = $cx1->eval("new Bar()");
+    isa_ok($o, "Foo");    
+}
+
+{
+    # Default constructor
+    # If we don't define package assume same as name
+    my $cx1 = $rt1->create_context();
+    $cx1->bind_class(name => "Foo");
+    $cx1->bind_class(name => "Baz", package => "Foo");
+
+    my $o = $cx1->eval("new Foo();");
     isa_ok($o, "Foo");
+    $o = $cx1->eval("new Baz();");
+    isa_ok($o, "Foo");
+
 }
 
 # Check fs and static_fs

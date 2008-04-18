@@ -1,5 +1,11 @@
 Revision history for Perl extension JavaScript.
 
+1.06 ...
+    - Objects returned when creating constructor for bound classes should not increment
+      refcount because this causes the objects to never be freed (James Duncan)
+    - Docs stated argument constructor could be omitted in bind_class which wasn't the case and 
+      so now it can and a default constructor will be created.
+      
 1.05 Tue Apr 1 2008
     - Drop support for error handlers
     - This module now requires SpiderMonkey 1.7 or later.

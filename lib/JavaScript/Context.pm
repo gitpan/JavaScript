@@ -211,8 +211,8 @@ sub bind_class {
     die "Argument 'name' must match /^[A-Za-z0-9_]+\$/" unless($args{name} =~ /^[A-Za-z0-9\_]+$/);
     
     # Check if constructor is supplied and it's an coderef
-    die "Missing argument 'constructor'\n" unless(exists $args{constructor});
-    my $cons = _resolve_method($args{constructor}, 1);
+    my $cons; 
+    $cons = _resolve_method($args{constructor}, 1) if exists $args{constructor};
     
     if (exists $args{flags}) {
         die "Argument 'flags' is not numeric\n" unless($args{flags} =~ /^\d+$/);
@@ -226,6 +226,13 @@ sub bind_class {
     
     my $name = $args{name};
     my $pkg = $args{package} || $name;
+    
+    # Create a default constructor
+    if (!defined $cons) {
+        $cons = sub {
+            $pkg->new(@_);
+        };
+    }
     
     # Per-object methods
     my $fs = _extract_methods(\%args, qw(methods fs));
