@@ -348,7 +348,6 @@ JSBool JSVALToSV(JSContext *cx, HV *seen, jsval v, SV** sv) {
                    we need to turn this to use hidden property on object */
                 SV *priv = (SV *)JS_GetPrivate(cx, object);
                 if (priv && SvROK(priv)) {
-                    SvREFCNT_inc(priv);
                     sv_setsv(*sv, priv);
                     return JS_TRUE;
                 }

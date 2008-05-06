@@ -167,7 +167,7 @@ my $exe = tmpnam();
 system($Config{cc}, $libs, @ccflags, "-l${lib}", "-o", $exe, (map { "-I$_" } @incs), "test_js.c");
 if ($?) {
     print "Failed compiling test_js.c. ABORTING\n";
-    exit 1;
+    exit 0;
 }
 unlink("test_js.c");
 
@@ -176,7 +176,7 @@ my ($engine, $version, $date) = split/\s+/, qx($exe);
 my ($v2) = $version =~ /^(\d+\.\d+)/;
 if ($v2 < 1.7) {
     if (prompt("I require SpiderMonkey version 1.7 or later but found ${version}. Try anyways? [y/N]", "N") ne "y") {
-        exit 1;
+        exit 0;
     }
 }
 

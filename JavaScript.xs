@@ -195,6 +195,34 @@ jsc_bind_value(cx, parent, name, object)
     OUTPUT:
         RETVAL
 
+void
+jsc_unbind_value(cx, parent, name)
+    PJS_Context     *cx;
+    char            *parent;
+    char            *name;
+    PREINIT:
+        jsval val, pval;
+        JSObject *gobj, *pobj;
+    CODE:
+        gobj = JS_GetGlobalObject(PJS_GetJSContext(cx));
+
+        if (strlen(parent)) {
+            JS_EvaluateScript(PJS_GetJSContext(cx), gobj, parent, strlen(parent), "", 1, &pval);
+            pobj = JSVAL_TO_OBJECT(pval);
+        }
+        else {
+            pobj = JS_GetGlobalObject(PJS_GetJSContext(cx));
+        }
+        /* TODO: Get property first and if it's an object decrease its refcount 
+        if (JS_GetProperty(PJS_GetJSContext(cx), pobj, name, &val) == JS_FALSE) {
+            croak("No property '%s' exists", name);
+        }
+        */
+        
+        if (JS_DeleteProperty(PJS_GetJSContext(cx), pobj, name) == JS_FALSE) {
+            croak("Failed to unbind %s", name);
+        }
+
 jsval 
 jsc_eval(cx, source, name)
     PJS_Context *cx;

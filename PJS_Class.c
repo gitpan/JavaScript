@@ -172,7 +172,9 @@ void PJS_finalize(JSContext *cx, JSObject *obj) {
     void *ptr = JS_GetPrivate(cx, obj);
 
     if(ptr != NULL) {
-        SvREFCNT_dec((SV *) ptr);
+        if (SvTYPE((SV *) ptr) == SVt_RV) {
+            SvREFCNT_dec(SvRV((SV *) ptr));
+        }
     }
 }
 

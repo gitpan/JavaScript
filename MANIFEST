@@ -63,7 +63,9 @@ t/26-e4x.t
 t/27-supports.t
 t/28-test-javascript-more.t
 t/29-exceptions.t
+t/30-refcount.t
 t/99-bottles-of-beer.t
+t/lib/DummyClass.pm
 t/pod-coverage.t
 t/pod.t
 typemap

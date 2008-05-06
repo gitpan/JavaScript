@@ -13,7 +13,7 @@ my $rt1 = new JavaScript::Runtime();
 my $cx1 = $rt1->create_context();
 
 $cx1->bind_class(name => "foo",
-                constructor => sub {},
+                constructor => sub { },
                 package => 'main',
             );
 

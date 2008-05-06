@@ -271,12 +271,27 @@ sub bind_value {
         my $parent = join('.', @paths[0..$num-1]);
         my $abs = join('.', @paths[0..$num]);
 
-        next if $self->eval($abs);
+        if($self->eval($abs)) {
+            # We don't want to be able to rebind without unbinding first
+            croak "${name} already exists, unbind it first" if $num == $#paths;
+
+            next;
+        }
+        
         jsc_bind_value($self->{_impl}, $parent,
                        $paths[$num], $num == $#paths ? $object : {});
     }
     
     return;
+}
+
+sub unbind_value {
+    my ($self, $name, $object, $opt) = @_;
+
+    my @paths = split /\./, $name;
+    $name = pop @paths;
+    my $parent = join(".", @paths);
+    jsc_unbind_value($self->{_impl}, $parent, $name);
 }
 
 sub set_branch_handler {
@@ -432,7 +447,11 @@ Binds a Perl object to the context under a given name.
 
 =item bind_value ( $name => $value )
 
-Defines a value with a given name and value.
+Defines a value with a given name and value. Trying to redefine an already existing property throws an exception.
+
+=item unbind_value ( $name )
+
+Removed a property from the context or a specified object.
 
 =item call ( $name, @arguments )
 
@@ -528,6 +547,10 @@ Binds a function to the context.
 =item jsc_bind_value ( PJS_Context *context, char *parent, char *name, SV *object)
 
 Defines a new named property in I<parent> with the value of I<object>.
+
+=item jsc_unbind_value ( PJS_Context *context, char *parent, char *name)
+
+Removes a new named property in I<parent>.
 
 =item jsc_set_branch_handler ( PJS_Context *context, SV *handler )
 

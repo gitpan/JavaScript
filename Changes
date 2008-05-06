@@ -1,6 +1,15 @@
 Revision history for Perl extension JavaScript.
 
-1.06 ...
+1.07 Tue May 6 2008
+    - Makefile.PL should abort with exit code 0 if conditions are not met instead of exit code 1.
+    - Don't increase refcount for object originating from Perl (James Duncan).
+    - Make bind_value croak if trying to rebind an already existing property.
+    - bind_value (object|function) will now throw an error if the target already exists. [rt.cpan.org #35572]
+    - Added unbind_value to remove objects, functions and value from the context. [rt.cpan.org #35572]
+    - Fix longtime memory leak caused by decreasing refcount on RV instead of on the 
+      SV the RV references. [rt.cpan.org #35571]
+    
+1.06 Fri Apr 18 2008
     - Objects returned when creating constructor for bound classes should not increment
       refcount because this causes the objects to never be freed (James Duncan)
     - Docs stated argument constructor could be omitted in bind_class which wasn't the case and 
