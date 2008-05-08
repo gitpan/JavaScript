@@ -1,5 +1,9 @@
 Revision history for Perl extension JavaScript.
 
+1.08 Thu May 8 2008
+    - Fixes Makefile.PL issues which made it fail on various platforms when trying to compile test app.
+    - Added option to skip building of test app. Set environment variable JS_FORCE to a true value.
+    
 1.07 Tue May 6 2008
     - Makefile.PL should abort with exit code 0 if conditions are not met instead of exit code 1.
     - Don't increase refcount for object originating from Perl (James Duncan).

@@ -92,6 +92,7 @@ if (-d "/opt/local/include/spidermonkey") {
 # Override with $ENV{JS_LIB} and $ENV{JS_INC}
 if (exists $ENV{JS_LIB}) {
     @libs = get_paths($ENV{JS_LIB});
+    $ENV{DYLD_LIBRARY_PATH} = $ENV{LD_LIBRARY_PATH} = $ENV{JS_LIB};
     $lib = "js";
 }
 if (exists $ENV{JS_INC}) {
@@ -152,9 +153,10 @@ print $header "\n#endif\n";
 
 close $header;
 
-# Try a small compile to determine if we can find libs and headers
-open my $test_script, ">test_js.c" || die $!;
-print $test_script <<'END_OF_SOURCE';
+unless ($ENV{JS_FORCE}) {
+    # Try a small compile to determine if we can find libs and headers
+    open(my $test_script, ">", "test_js.c") || die $!;
+    print $test_script <<'END_OF_SOURCE';
 #include <stdio.h>
 #include "JavaScript_Env.h"
 
@@ -162,26 +164,32 @@ int main(int argc, char **argv) {
     printf("%s", JS_GetImplementationVersion());
 }
 END_OF_SOURCE
-close $test_script;
-my $exe = tmpnam();
-system($Config{cc}, $libs, @ccflags, "-l${lib}", "-o", $exe, (map { "-I$_" } @incs), "test_js.c");
-if ($?) {
-    print "Failed compiling test_js.c. ABORTING\n";
-    exit 0;
-}
-unlink("test_js.c");
+    close $test_script;
 
-# Get js version and require 1.7 or later
-my ($engine, $version, $date) = split/\s+/, qx($exe);
-my ($v2) = $version =~ /^(\d+\.\d+)/;
-if ($v2 < 1.7) {
-    if (prompt("I require SpiderMonkey version 1.7 or later but found ${version}. Try anyways? [y/N]", "N") ne "y") {
+    my $exe = tmpnam();;
+    my $cc = join(" ", $Config{cc}, $libs, @ccflags, "-l${lib}", "-o", $exe, (map { "-I$_" } @incs), "test_js.c");
+    qx($cc);
+    if ($?) {
+        print "Failed compiling test_js.c. ABORTING\n";
         exit 0;
     }
-}
+    unlink("test_js.c");
 
-# Dispose temp stuff
-unlink($exe);
+    # Get js version and require 1.7 or later
+    my ($engine, $version, $date) = split/\s+/, qx($exe);
+    my ($v2) = $version =~ /^(\d+\.\d+)/;
+    if ($v2 < 1.7) {
+        if (prompt("I require SpiderMonkey version 1.7 or later but found ${version}. Try anyways? [y/N]", "N") ne "y") {
+            exit 0;
+        }
+    }
+
+    # Dispose temp stuff
+    unlink($exe);
+}
+else {
+    print "Skipping build test since JS_FORCE is set\n";
+}
 
 # Write makefile
 WriteMakefile(

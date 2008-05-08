@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                JavaScript
-version:             1.07
+version:             1.08
 abstract:            Perl extension for executing embedded JavaScript
 license:             perl
 author:              

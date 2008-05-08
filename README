@@ -51,6 +51,10 @@ setting their respective environment variable to a true (1) or false value (2)
 
 Where do look for headers and libraries can be specified using JS_LIB and JS_INC environment variables. They accept a colon (:) separated list.
 
+The Makefile.PL will try to build a small test to determine if the libraries and headers can be used as well as checking what 
+spidermonkey library is used. We require at least 1.7 but it *might* work on 1.6. If you don't want these test to be performed 
+set the environment variable JS_FORCE to a true value before running Makefile.PL.
+
 When ready invoke the following to build and install this module:
 
 > perl Makefile.PL

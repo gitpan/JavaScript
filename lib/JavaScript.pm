@@ -23,7 +23,7 @@ our @EXPORT_OK = (@EXPORT);
 
 our %EXPORT_TAGS = ( all => [@EXPORT_OK] );
 
-our $VERSION = '1.07';
+our $VERSION = '1.08';
 
 our $MAXBYTES = 1024 ** 2;
 
@@ -203,7 +203,7 @@ Claes Jakobsson C<< <claesjac@cpan.org> >>
 
 =head1 LICENCE AND COPYRIGHT
 
-Copyright (c) 2001 - 2007, Claes Jakobsson C<< <claesjac@cpan.org> >>. All rights reserved.
+Copyright (c) 2001 - 2008, Claes Jakobsson C<< <claesjac@cpan.org> >>. All rights reserved.
 
 This module is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself. See L<perlartistic>.
