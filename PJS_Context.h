@@ -88,8 +88,10 @@ PJS_GetFunctionByName(PJS_Context *fromContext, const char *functionName);
     @param fromContext The context to search in
     @result A pointer to the underlying JSContext
 */
-PJS_EXTERN JSContext *
-PJS_GetJSContext(PJS_Context *fromContext);
+#define PJS_GetJSContext(fromContext) (fromContext->cx)
+
+/*PJS_EXTERN JSContext *
+PJS_GetJSContext(PJS_Context *fromContext);*/
 
 /*! @function PJS_GetClassByName
     @abstract Retrieve a bound class from a context

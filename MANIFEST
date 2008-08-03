@@ -26,6 +26,14 @@ PJS_TypeConversion.h
 PJS_Types.h
 README
 TODO
+dev_tests/bad_eval.pl
+dev_tests/bind_value.pl
+dev_tests/cx_leaktest.pl
+dev_tests/leaktest.pl
+dev_tests/memory_consumption.pl
+dev_tests/refs.pl
+dev_tests/returns.pl
+dev_tests/roundtrip.pl
 lib/JavaScript.pm
 lib/JavaScript/Boxed.pm
 lib/JavaScript/Context.pm
@@ -64,6 +72,7 @@ t/27-supports.t
 t/28-test-javascript-more.t
 t/29-exceptions.t
 t/30-refcount.t
+t/31-version.t
 t/99-bottles-of-beer.t
 t/lib/DummyClass.pm
 t/pod-coverage.t

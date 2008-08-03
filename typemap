@@ -7,6 +7,7 @@ PJS_TrapHandler *  T_PTRREF
 jsval                   jsval
 
 OUTPUT
+
 jsval
     {
         SV *orz = sv_newmortal();

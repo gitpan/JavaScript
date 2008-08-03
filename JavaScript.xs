@@ -4,6 +4,10 @@
 
 #include "JavaScript.h"
 
+#ifndef FUN_OBJECT(fun)
+#define FUN_OBJECT(fun) (jsval)(fun->object)
+#endif
+
 MODULE = JavaScript     PACKAGE = JavaScript
 PROTOTYPES: DISABLE
 
@@ -119,6 +123,21 @@ jsc_destroy(cx)
     OUTPUT:
         RETVAL
 
+const char *
+jsc_get_version(cx)
+    PJS_Context *cx;
+    CODE:
+        RETVAL = JS_VersionToString(JS_GetVersion(PJS_GetJSContext(cx)));
+    OUTPUT:
+        RETVAL
+
+void
+jsc_set_version(cx, version)
+    PJS_Context *cx;
+    const char *version;
+    CODE:
+        JS_SetVersion(PJS_GetJSContext(cx), JS_StringToVersion(version));
+        
 void
 jsc_set_branch_handler(cx, handler)
     PJS_Context *cx;
@@ -294,7 +313,7 @@ jsc_call(cx, function, args)
             tmp = SvIV((SV*)SvRV(PJS_call_perl_method("content", function, NULL)));
             func = INT2PTR(JSFunction *, tmp);
 
-            if (PJS_call_javascript_function(cx, (jsval) (func->object), args, &rval) == JS_FALSE) {
+            if (PJS_call_javascript_function(cx, FUN_OBJECT(func), args, &rval) == JS_FALSE) {
                 /* Exception was thrown */
                 XSRETURN_UNDEF;
             }

@@ -310,6 +310,17 @@ sub compile {
     return $script;
 }
 
+sub get_version {
+    my ($self, $version) = @_;
+    return jsc_get_version($self->{_impl});
+}
+
+sub set_version {
+    my ($self, $version) = @_;
+    jsc_set_version($self->{_impl}, $version);
+    1;
+}
+
 sub _destroy {
     my $self = shift;
     return unless $self->{'_impl'};
@@ -496,6 +507,19 @@ To remove the handler call this method with an undefined argument.
 
 The handler is called when a script branches backwards during execution, when a function returns and the end of the script. To continue execution the handler must return a true value. To abort execution either throw an exception or return a false value.
 
+=item get_version ( )
+
+Returns the runtime version of the context as a string, for exmaple C<1.7> or or C<ECMAv3>.
+
+=item set_version ( $version )
+
+Sets the runtime version of the context to that specified in the string I<$version>. Some features 
+such as C<let> and C<yield> might not be enabled by default and thus must be turned on by 
+specifying what JS version we're using.
+
+A list of these can be found at L<http://developer.mozilla.org/en/docs/JSVersion> but may vary 
+depending on the version of your runtime.
+
 =back
 
 =begin PRIVATE
@@ -555,6 +579,14 @@ Removes a new named property in I<parent>.
 =item jsc_set_branch_handler ( PJS_Context *context, SV *handler )
 
 Attaches a branch handler to the context. No check is made to see if I<handler> is a valid SVt_PVCV.
+
+=item jsc_get_version ( PJS_Context *context )
+
+Returns the version of the context as a string, for example "1.7"
+
+=item jsc_set_version ( PJS_Context *context, const char *version) 
+
+Set the version of the context to the one specified in version.
 
 =back
 

@@ -124,7 +124,7 @@ __END__
 
 =head1 NAME
 
-JavaScript::Runtime -
+JavaScript::Runtime - Runs contexts
 
 =head1 DESCRIPTION
 

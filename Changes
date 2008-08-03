@@ -1,10 +1,17 @@
 Revision history for Perl extension JavaScript.
 
-1.08 Thu May 8 2008
+1.09  2008-08-03
+    - It's now possible to set and get the version of JS our context is dealing with since in
+      some cases such as using 'let' and 'yield' we actually have to specify that we want
+      1.7 features.
+    - Fix a bunch of small pod issues. [rt.cpan.org #30333]
+    - Fix Changes (this file) to use ISO 8601 dates
+    
+1.08  2008-05-08
     - Fixes Makefile.PL issues which made it fail on various platforms when trying to compile test app.
     - Added option to skip building of test app. Set environment variable JS_FORCE to a true value.
     
-1.07 Tue May 6 2008
+1.07  2008-05-06
     - Makefile.PL should abort with exit code 0 if conditions are not met instead of exit code 1.
     - Don't increase refcount for object originating from Perl (James Duncan).
     - Make bind_value croak if trying to rebind an already existing property.
@@ -13,13 +20,13 @@ Revision history for Perl extension JavaScript.
     - Fix longtime memory leak caused by decreasing refcount on RV instead of on the 
       SV the RV references. [rt.cpan.org #35571]
     
-1.06 Fri Apr 18 2008
+1.06  2008-04-18
     - Objects returned when creating constructor for bound classes should not increment
       refcount because this causes the objects to never be freed (James Duncan)
     - Docs stated argument constructor could be omitted in bind_class which wasn't the case and 
       so now it can and a default constructor will be created.
       
-1.05 Tue Apr 1 2008
+1.05  2008-04-01
     - Drop support for error handlers
     - This module now requires SpiderMonkey 1.7 or later.
     - Makefile.PL now compiles a small test to see if libs and headers can be found
@@ -27,7 +34,7 @@ Revision history for Perl extension JavaScript.
     - Drop support for Perl 5.6.x and earlier because we need some API symbols not available there 
       and they don't support unicode properly either. [rt.cpan.org #31114]
       
-1.04 Sat Nov 17 2007
+1.04  2007-11-17
     - Skip exception tests on engines less than 1.7 since these seem to be broken.
     - Free memory allocated by JS_smprintf when converting from utf8 strings (spotted by Ash Berlin)
     - Don't call js_ValueToXMLString but instead call JS method "toXMLString" on the object [rt.cpan.org #26411]
@@ -45,7 +52,7 @@ Revision history for Perl extension JavaScript.
     - Split up giant .XS file into smaller pieces
     - Added CREDITS to MANIFEST so it's bundled with the distribution
     
-1.03 Wed Feb 21 2007
+1.03  2007-02-21
     - Honor value of JS_ENABLE_E4X
     - Improved README
     - Added CREDITS
@@ -64,27 +71,27 @@ Revision history for Perl extension JavaScript.
     - Allow building with debug symbols (set JS_DEBUG to a true value) (Fotango)
     - Allow setting JS_THREADSAFE and JS_UTF8 to true/false to avoid the prompts (Fotango)
 
-1.02 Mon Feb 12 2007
+1.02  2007-02-17
     - Makefile.PL now generates a JavaScript_Env.h that sets correct defines and includes correct headers
     - Structs, macros etc are now in a JavaScript.h
     - Header files and typemap is now installed with module
     - Added ext field (void *) to PJS_Runtime and PJS_Context that can be used custom stuff
             
-1.01 Mon Feb 12 2007
+1.01  2007-02-12
     - Added support for detecting DarwinPorts [rt.cpan.org #14910]
     - Added missing test for converting JavaScript booleans -> Perl
     - Integrated patch that fixes compilation problems on Debian (Toru Yamaguchi, Daniel Burke)
     - Cleaned up TODO
 
-1.00 Mon Sep 4 2006
+1.00  2006-09-04
     - Release of 1.00
 
-1.00_02 Sat Aug 19 2006
+1.00_02  2006-08-19
     - Incorporated patch to support new SpiderMokey installation-scheme in Debian [rt.cpan.org #18152]
     - Passing ERRSV to SVToJSVAL doesn't seem to be safe so we'll pass a copy instead (Tom Insam)
     - Cleaning up some internal function names
 
-1.00_01 Tue Jul 11 2006
+1.00_01  2006-07-11
     - Fixed invocation of methods on objects
     - Added support for "static" methods of classes, i.e. "Test.foo(...)" should now work
     - Added support for "static" properties of classes, i.e. "Test.bar = 10"; should now work
@@ -101,13 +108,13 @@ Revision history for Perl extension JavaScript.
         - Lots or more tests
         - And lots more
 
-0.55 Wed Jun 30 9:05:00 CET 2005
+0.55  2005-06-30
     - Fixed error handling (patch by G. Allen Morris III)
 
-0.54 Tue Jun 29 11:50:00 CET 2005
+0.54  2005-06-29
     - Make Makefile.PL play happy games with Gentoo (patch by sungo)
 
-0.53 Fri Mar 18 19:49:25 CET 2005 (Joost Diepenmaat)
+0.53  2005-03-18
     - Added JS_THREADSAFE define, which fixed bug on perl 5.8.5
       thread-multi linux
     - added tests for debian spidermonkey libs (debian users can
@@ -119,20 +126,20 @@ Revision history for Perl extension JavaScript.
       to run on perl 5.8.6 threaded and unthreaded)
     - Fixed a couple of alloc()s
     
-0.52 Sat Aug 11 22:47:00 2001
+0.52  2001-08-11
     - Added can method to JavaScript::Context
     - Removed the need of passing the JSClass name to bind_object
     - Fixed issues with package
     - Fixed return from call
     - Brought docs up to sync with implementation
 
-0.51 Thu Jul 26 12:01:00 2001
+0.51  2001-07-26
     - Changed new_context to create_context to match documentation
     - Changed create_context to not try and take named arguments
 
-0.5 Wed Jul 25 14:20:10 2001
+0.5   2001-06-25
     - First public release
     
-0.01 Mon Mar 19 09:51:10 2001
+0.01  2001-03-19
     - original version; created by h2xs 1.21 with options
         -f -n JavaScript

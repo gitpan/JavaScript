@@ -112,6 +112,7 @@ sub import {
 1;
 
 __END__
+
 =head1 NAME
 
 Test::JavaScript::More - test javascript code

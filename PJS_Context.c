@@ -221,11 +221,11 @@ JSBool PJS_branch_handler(JSContext *cx, JSScript *script) {
     return status;
 }
 
-JSContext *
+/*JSContext *
 PJS_GetJSContext(PJS_Context *fromContext) {
     if (fromContext != NULL) {
         return fromContext->cx;
     }
     
     return NULL;
-}
+}*/
