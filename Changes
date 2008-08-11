@@ -1,5 +1,17 @@
 Revision history for Perl extension JavaScript.
 
+1.10  2008-08-11
+    - Warn user that JS_THREADSAFE is not what's recommended.
+    - Added a native PerlHash type that encapsulates a Perl hash reference in JavaScript.
+    - Added a native PerlArray type that encapsulates a Perl array reference in JavaScript.
+    - Changed the linked list that stores bound classes to a pair of HVs storing JavaScript::PerlClass objects instead
+      which are basically just PJS_Class* instances.
+    - Changed the linked list that stores bound functions to an HV storing JavaScript::PerlFunction objects instead
+      which are basically just PJS_Function* instances.
+    - Fixed a couple of problems that cause contexts no to be destroyed when supposed to
+    - Added resources section to META.yml with pointer to repository
+    - Improved the test suite a bit by naming tests
+    
 1.09  2008-08-03
     - It's now possible to set and get the version of JS our context is dealing with since in
       some cases such as using 'let' and 'yield' we actually have to specify that we want

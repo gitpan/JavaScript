@@ -23,7 +23,7 @@ our @EXPORT_OK = (@EXPORT);
 
 our %EXPORT_TAGS = ( all => [@EXPORT_OK] );
 
-our $VERSION = '1.09';
+our $VERSION = "1.10";
 
 our $MAXBYTES = 1024 ** 2;
 
@@ -70,6 +70,11 @@ sub supports {
     }
         
     return 1;
+}
+
+sub create_runtime {
+    my $pkg = shift;
+    return JavaScript::Runtime->new(@_);
 }
 
 bootstrap JavaScript $VERSION;
@@ -125,6 +130,10 @@ to the SpiderMonkey engine used in the Mozilla-family of browsers.
 =head2 CLASS METHODS
 
 =over 4
+
+=item create_runtime ( ... )
+
+Shortcut for C<JavaScript::Runtime->new(...)>.
 
 =item get_engine_version
 

@@ -20,7 +20,7 @@ extern "C" {
 struct PJS_Class {
     /* Clasp */
     JSClass *clasp;
-
+	
     /* Package name in Perl */
     char *pkg;
       
@@ -73,6 +73,9 @@ PJS_add_class_properties(PJS_Class *, HV *, U8);
 
 PJS_EXTERN JSBool
 PJS_invoke_perl_object_method(JSContext *, JSObject *, uintN , jsval *, jsval *);
+
+PJS_EXTERN void
+PJS_store_class(PJS_Context *pcx, PJS_Class *cls);
 
 /*!  @functiongroup Query functions */
 

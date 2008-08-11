@@ -21,7 +21,7 @@ $cx1->bind_class(name => "foo",
 ok($cx1->eval(q{
   foo.prototype.bar = function() { return 1 };
   1;
-}));
+}), "Assign to prototype ok");
 
 is($cx1->eval(q/ ( new foo() ).bar() /), 1, "can call prototype methods");
 

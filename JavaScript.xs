@@ -8,6 +8,11 @@
 #define FUN_OBJECT(fun) (jsval)(fun->object)
 #endif
 
+typedef PJS_PerlArray * JavaScript__PerlArray;
+typedef PJS_PerlHash *  JavaScript__PerlHash;
+typedef PJS_Class *     JavaScript__PerlClass;
+typedef PJS_Function *  JavaScript__PerlFunction;
+
 MODULE = JavaScript     PACKAGE = JavaScript
 PROTOTYPES: DISABLE
 
@@ -463,3 +468,82 @@ jss_compile(cx, source)
         RETVAL = psc;
     OUTPUT:
         RETVAL
+
+MODULE = JavaScript     PACKAGE = JavaScript::PerlArray
+
+JavaScript::PerlArray
+new(pkg)
+    const char *pkg;
+    PREINIT:
+        PJS_PerlArray *array;
+    CODE:
+        array = PJS_NewPerlArray();
+        RETVAL = array;
+    OUTPUT:
+        RETVAL
+
+AV *
+get_ref(obj)
+    JavaScript::PerlArray obj;
+    CODE:
+        RETVAL = obj->av;
+    OUTPUT:
+        RETVAL
+
+void
+DESTROY(obj)
+    JavaScript::PerlArray obj;
+    CODE:
+        if (obj->av != NULL) {
+            av_undef(obj->av);
+        }
+        obj->av = NULL;
+        Safefree(obj);
+
+MODULE = JavaScript     PACKAGE = JavaScript::PerlHash
+
+JavaScript::PerlHash
+new(pkg)
+    const char *pkg;
+    PREINIT:
+        PJS_PerlHash *hash;
+    CODE:
+        hash = PJS_NewPerlHash();
+        RETVAL = hash;
+    OUTPUT:
+        RETVAL
+
+HV *
+get_ref(obj)
+    JavaScript::PerlHash obj;
+    CODE:
+        RETVAL = obj->hv;
+    OUTPUT:
+        RETVAL
+
+void
+DESTROY(obj)
+    JavaScript::PerlHash obj;
+    CODE:
+        if (obj->hv != NULL) {
+            hv_undef(obj->hv);
+        }
+        obj->hv = NULL;
+        Safefree(obj);
+
+MODULE = JavaScript     PACKAGE = JavaScript::PerlClass
+
+void
+DESTROY(cls)
+    JavaScript::PerlClass cls;
+    CODE:
+        PJS_free_class(cls);
+
+
+MODULE = JavaScript     PACKAGE = JavaScript::PerlFunction
+
+void
+DESTROY(func)
+    JavaScript::PerlFunction func;
+    CODE:
+        PJS_DestroyFunction(func);

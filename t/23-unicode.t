@@ -37,7 +37,10 @@ is( $key, "\xe9", "unicode hash keys" );
 $context->bind_value( uhash => { "\x{e9}" => 1 } );
 is( $context->eval("uhash[ ucopy ]" ), 1, "unicode hash keys from perl" );
 
+$context->unbind_value("uhash");
+$context->unbind_value("ucopy");
+$context->bind_value( ucopy => "\x{2668}" );
 $context->bind_value( uhash => { "\x{2668}" => 1 } );
-is( $context->eval("uhash[ ucopy ]" ), 1, "unicode hash keys from perl" );
+is( $context->eval(q{uhash[ucopy]}), 1, "unicode hash keys from perl" );
 
 

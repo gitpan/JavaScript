@@ -26,11 +26,12 @@ struct PJS_Context {
     JSContext *cx;
 
     /* Pointer to the first callback item that is registered */
-    PJS_Function *functions;
+	HV *function_by_name;
 
     /* Pointer to the first bound class */
-    PJS_Class *classes;
-
+	HV *class_by_name;
+	HV *class_by_package;
+	
     PJS_Context *next;      /* Pointer to the next created context */
     PJS_Runtime *rt;
 

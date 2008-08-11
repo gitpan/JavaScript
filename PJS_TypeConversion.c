@@ -51,11 +51,12 @@ JSBool PJS_ConvertPerlToJSType(JSContext *cx, JSObject *seen, JSObject *obj, SV 
             return JS_TRUE;
         }
         
+        /* ugly hack, this needs to be nicer */
         if((pcx = PJS_GET_CONTEXT(cx)) == NULL) {
             *rval = JSVAL_VOID;
             return JS_FALSE;
         }
-        
+                
         if((pjsc = PJS_GetClassByPackage(pcx, name)) == NULL) {
             *rval = JSVAL_VOID;
             return JS_FALSE;
@@ -342,7 +343,6 @@ JSBool JSVALToSV(JSContext *cx, HV *seen, jsval v, SV** sv) {
             else if (OBJ_IS_NATIVE(object) &&
                      (OBJ_GET_CLASS(cx, object)->flags & JSCLASS_HAS_PRIVATE) &&
                      (strcmp(OBJ_GET_CLASS(cx, object)->name, "Error") != 0)) {
-
                 /* Object with a private means the actual perl object is there */
                 /* This is kludgy because function is also object with private,
                    we need to turn this to use hidden property on object */

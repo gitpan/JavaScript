@@ -5,7 +5,8 @@ package Foo;
 use strict;
 use warnings;
 
-use Test::More tests => 13;
+use Test::More tests => 14;
+use Test::Exception;
 
 use JavaScript;
 
@@ -59,49 +60,50 @@ $cx1->bind_class(
 
 my $foo = new Foo();
 
-$cx1->bind_object('FooSan', $foo);
+lives_ok { $cx1->bind_object('FooSan', $foo) } "bound object FooSan ok";
 
-isa_ok($cx1->eval("FooSan;"), "Foo");
+isa_ok($cx1->eval("FooSan;"), "Foo", "returned object is-a Foo");
 
-is($cx1->eval("FooSan.bar();"), 5);
+is($cx1->eval("FooSan.bar();"), 5, "Calling method bar() on bound object");
 
 $cx1->eval(q{
 FooSan.std = 1;
 });
 
-is($foo->{std}, 1);
+is($foo->{std}, 1, "Assignment to property in object");
 
 $foo->{std} = 3;
 
-is($cx1->eval(q{ FooSan.std }), 3);
+is($cx1->eval(q{ FooSan.std }), 3, "Reading property in object");
 
 $cx1->eval(q!
 FooSan.wrapped_value = 1;
 !);
 
-ok($foo->{"setter_called"});
+ok($foo->{"setter_called"}, "Assignment to property with setter");
 
-ok($foo->{wrapped} == 1);
+ok($foo->{wrapped} == 1, "Assigned value is 1");
 
-ok($cx1 && ref($cx1)); # somehow disappeared during development
+ok($cx1 && ref($cx1), "Still have context after calling setter"); # somehow disappeared during development
 
 $foo->{wrapped} = 2;
 
 ok($cx1->eval(q{
     FooSan.wrapped_value
-}) == 2);
-ok($foo->{"getter_called"});
+}) == 2, "Calling getter");
+ok($foo->{"getter_called"}, "Reading from property with getter");
 
-ok($cx1 && ref($cx1)); # somehow disappeared during development
+ok($cx1 && ref($cx1), "Still have context after calling getter"); # somehow disappeared during development
 
+$foo->{"getter_called"} = 0;
 
 $cx1->eval(q{
 FooSan.wrapped_value = FooSan.wrapped_value + 1;
 });
-ok($foo->{"getter_called"});
+ok($foo->{"getter_called"}, "Calling getter and setter");
 
-ok($cx1 && ref($cx1)); # somehow disappeared during development
+ok($cx1 && ref($cx1), "Still have context after both getter and setter"); # somehow disappeared during development
 
-ok($foo->{wrapped} == 3);
+ok($foo->{wrapped} == 3, "Value is correct (3)");
 
 

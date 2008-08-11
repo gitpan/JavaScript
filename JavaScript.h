@@ -28,6 +28,8 @@ extern "C" {
 #include "PJS_Script.h"
 #include "PJS_TypeConversion.h"
 #include "PJS_Common.h"
+#include "PJS_PerlArray.h"
+#include "PJS_PerlHash.h"
 
 #ifdef __cplusplus
 }

@@ -19,10 +19,8 @@ sub new {
     
     my $self = bless { _impl => $cx_ptr }, $pkg;
 
-    $Context{${$cx_ptr}} = $self;
-    
-    weaken($Context{$cx_ptr});
-
+    $Context{$$cx_ptr} = $self;
+    weaken($Context{$$cx_ptr});
     $self->{runtime} = $runtime;
     
     return $self;
@@ -327,6 +325,7 @@ sub _destroy {
     delete $Context{${$self->{_impl}}};
     jsc_destroy($self->{'_impl'} );
     delete $self->{'_impl'};
+    delete $self->{runtime};
     return 1;
 }
 

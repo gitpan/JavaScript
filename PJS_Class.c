@@ -80,12 +80,17 @@ void PJS_free_class(PJS_Class *pcls) {
     PJS_free_JSPropertySpec(pcls->ps);
     PJS_free_JSPropertySpec(pcls->static_ps);
     
+    if (pcls->flags & PJS_FREE_JSCLASS) {
+        Safefree(pcls->clasp->name);
+        Safefree(pcls->clasp);
+    }
+    
     Safefree(pcls);
 }
 
 void PJS_bind_class(PJS_Context *pcx, char *name, char *pkg, SV *cons, HV *fs, HV *static_fs, HV *ps, HV *static_ps, U32 flags) {
     PJS_Class *pcls;
-
+    
     if (pcx == NULL) {
         croak("Can't bind_class in an undefined context");
     }
@@ -162,10 +167,25 @@ void PJS_bind_class(PJS_Context *pcx, char *name, char *pkg, SV *cons, HV *fs, H
 
     /* refcount constructor */
     pcls->cons = SvREFCNT_inc(cons);
+    pcls->flags |= PJS_FREE_JSCLASS;
     
-    /* Add class to list of classes in context */
-    pcls->_next = pcx->classes;
-    pcx->classes = pcls;
+    PJS_store_class(pcx, pcls);
+}
+
+void PJS_store_class(PJS_Context *pcx, PJS_Class *cls) {
+    /* Add class to list of classes in contexts */
+    SV *sv = newSV(0);
+	sv_setref_pv(sv, "JavaScript::PerlClass", (void*) cls);
+	
+    if (cls->clasp->name != NULL) {
+        SvREFCNT_inc(sv);
+        hv_store(pcx->class_by_name, cls->clasp->name, strlen(cls->clasp->name), sv, 0);
+    }
+    
+    if (cls->pkg != NULL) {
+        SvREFCNT_inc(sv);
+        hv_store(pcx->class_by_package, cls->pkg, strlen(cls->pkg), sv, 0);
+    }
 }
 
 void PJS_finalize(JSContext *cx, JSObject *obj) {

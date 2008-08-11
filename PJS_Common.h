@@ -41,10 +41,11 @@ extern "C" {
 */
 #define PJS_BOXED_PACKAGE     "JavaScript::Boxed"
 
-#define PJS_PROP_PRIVATE      0x1
-#define PJS_PROP_READONLY     0x2
-#define PJS_PROP_ACCESSOR     0x4
-#define PJS_CLASS_NO_INSTANCE 0x1
+#define PJS_PROP_PRIVATE      	0x1
+#define PJS_PROP_READONLY     	0x2
+#define PJS_PROP_ACCESSOR     	0x4
+#define PJS_CLASS_NO_INSTANCE	0x1
+#define PJS_FREE_JSCLASS		0x2
 
 #define _IS_UNDEF(a) (SvANY(a) == SvANY(&PL_sv_undef))
 

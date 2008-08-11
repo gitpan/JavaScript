@@ -31,5 +31,5 @@ my $rt = JavaScript::Runtime->new();
         is($sv->REFCNT, 2);
     }
     
-    is($sv->REFCNT, 1);
+    is($sv->REFCNT, 0);
 }

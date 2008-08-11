@@ -10,6 +10,8 @@
 #include "PJS_Context.h"
 #include "PJS_Runtime.h"
 #include "PJS_Class.h"
+#include "PJS_PerlArray.h"
+#include "PJS_PerlHash.h"
 
 /* Global class, does nothing */
 static JSClass global_class = {
@@ -20,53 +22,50 @@ static JSClass global_class = {
 };
 
 PJS_Function * PJS_GetFunctionByName(PJS_Context *cx, const char *name) {
-    PJS_Function *function;
+    PJS_Function *func = NULL;
+    SV **sv;
+    IV tmp;
 
-    function = cx->functions;
-
-    while(function != NULL) {
-        if(strcmp(PJS_GetFunctionName(function), name) == 0) {
-            return function;
-        }
-        
-        function = function->_next;
+    sv = hv_fetch(cx->function_by_name, name, strlen(name), 0);
+    if (sv == NULL) {
+        return NULL;
     }
-
-    return NULL;
+    tmp = SvIV((SV *) SvRV(*sv));
+    func = INT2PTR(PJS_Function *, tmp);
+        
+    return func;
 }
-
+    
 PJS_Class * 
 PJS_GetClassByName(PJS_Context *cx, const char *name) {
     PJS_Class *cls = NULL;
-    
-    cls = cx->classes;
-    
-    while (cls != NULL) {
-        if (strcmp(PJS_GetClassName(cls), name) == 0) {
-            return cls;
-        }
-        
-        cls = cls->_next;
+    SV        **sv;
+    IV        tmp;
+
+    sv = hv_fetch(cx->class_by_name, name, strlen(name), 0);
+    if (sv == NULL) {
+        return NULL;
     }
-    
-    return NULL;
+    tmp = SvIV((SV *) SvRV(*sv));
+    cls = INT2PTR(PJS_Class *, tmp);
+        
+    return cls;
 }
 
 PJS_Class *
 PJS_GetClassByPackage(PJS_Context *cx, const char *pkg) {
     PJS_Class *cls = NULL;
+    SV        **sv;
+    IV        tmp;
     
-    cls = cx->classes;
-
-    while (cls != NULL) {
-        if (cls->pkg != NULL && strcmp(PJS_GetClassPackage(cls), pkg) == 0) {
-            return cls;
-        }
-        
-        cls = cls->_next;
+    sv = hv_fetch(cx->class_by_package, pkg, strlen(pkg), 0);
+    if (sv == NULL) {
+        return NULL;
     }
+    tmp = SvIV((SV *) SvRV(*sv));
+    cls = INT2PTR(PJS_Class *, tmp);
     
-    return NULL;
+    return cls;
 }
 
 /*
@@ -105,11 +104,23 @@ PJS_Context * PJS_CreateContext(PJS_Runtime *rt) {
         PJS_DestroyContext(pcx);
         croak("Standard classes not loaded properly.");
     }
+    
+    pcx->function_by_name = newHV();
+    pcx->class_by_name = newHV();
+    pcx->class_by_package = newHV();
+    
+    if (PJS_InitPerlArrayClass(pcx, obj) == JS_FALSE) {
+        PJS_DestroyContext(pcx);
+        croak("Perl classes not loaded properly.");        
+    }
 
-    /* Add context to context list */
-    pcx->functions = NULL;
-    pcx->classes = NULL;
+    if (PJS_InitPerlHashClass(pcx, obj) == JS_FALSE) {
+        PJS_DestroyContext(pcx);
+        croak("Perl classes not loaded properly.");        
+    }
+
     pcx->rt = rt;
+    /* Add context to context list */
     pcx->next = rt->list;
     rt->list = pcx;
 
@@ -122,30 +133,14 @@ PJS_Context * PJS_CreateContext(PJS_Runtime *rt) {
   Free memory occupied by PJS_Context structure
 */
 void PJS_DestroyContext(PJS_Context *pcx) {
-    PJS_Function *pfunc, *pfunc_next;
-    PJS_Class *pcls, *pcls_next;
-
     if (pcx == NULL) {
         return;
     }
     
-    pfunc = pcx->functions;
-    
-    /* Check if we have any bound functions */
-    while (pfunc != NULL) {
-        pfunc_next = pfunc->_next;
-        PJS_DestroyFunction(pfunc);
-        pfunc = pfunc_next;
-    }
-
-    pcls = pcx->classes;
-    /* Check if we have any bound classes */
-    while (pcls != NULL) {
-        pcls_next = pcls->_next;
-        PJS_free_class(pcls);
-        pcls = pcls_next;
-    }
-
+    hv_clear(pcx->function_by_name);
+    hv_clear(pcx->class_by_name);
+    hv_clear(pcx->class_by_package);
+        
     /* Destory context */
     JS_DestroyContext(pcx->cx);
 
@@ -156,6 +151,7 @@ PJS_Function *
 PJS_DefineFunction(PJS_Context *inContext, const char *functionName, SV *perlCallback) {
     PJS_Function *function;
     JSContext    *js_context = inContext->cx;
+    SV *sv;
     
     if (PJS_GetFunctionByName(inContext, functionName) != NULL) {
         warn("Function named '%s' is already defined in the context");
@@ -173,10 +169,14 @@ PJS_DefineFunction(PJS_Context *inContext, const char *functionName, SV *perlCal
         return NULL;
     }
 
-    /* Insert function in context linked list */
-    function->_next = inContext->functions;
-    inContext->functions = function;      
-
+    sv = newSV(0);
+	sv_setref_pv(sv, "JavaScript::PerlFunction", (void*) function);
+	
+    if (functionName != NULL) {
+        SvREFCNT_inc(sv);
+        hv_store(inContext->function_by_name, functionName, strlen(functionName), sv, 0);
+    }
+    
     return function;
 }
 

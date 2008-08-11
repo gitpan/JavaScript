@@ -1,10 +1,15 @@
 TYPEMAP
-PJS_Runtime *           T_PTRREF
-PJS_Context *           T_PTRREF
-PJS_Script *            T_PTRREF
-JSFunction *            T_PTROBJ
-PJS_TrapHandler *  T_PTRREF
-jsval                   jsval
+
+PJS_Runtime *               T_PTRREF
+PJS_Context *               T_PTRREF
+PJS_Script *                T_PTRREF
+JavaScript::PerlArray       T_PTROBJ
+JavaScript::PerlHash        T_PTROBJ
+JavaScript::PerlClass       T_PTROBJ
+JavaScript::PerlFunction    T_PTROBJ
+JSFunction *                T_PTROBJ
+PJS_TrapHandler *           T_PTRREF
+jsval                       jsval
 
 OUTPUT
 

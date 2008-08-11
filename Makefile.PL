@@ -112,6 +112,14 @@ else {
     push @defines, "JS_THREADSAFE" if $enable_threadsafe eq "y";
 }
 
+if (grep /^JS_THREADSAFE$/, @defines) {
+   print "Whoa there! Attention! You have asked me to build a JavaScript.pm that links against a SpiderMonkey built with ";
+   print "JS_THREADSAFE defined. Although must things will proabaly work as expected some might not and I really ";
+   print "don't put much effort into supporting JS_THREADSAFE (actually none expect accept some patches). ";
+   print "If you are using a JS_THREADSAFE it's likely because your OS vendor supplied the SpiderMonkey libs you're using ";
+   print "and instead I recommend you to download and build your own SpiderMonkey libs that doesn't use JS_THREADSAFE.\n";
+}
+
 # Check if we need to enable JS_C_STRINGS_ARE_UTF8?
 if(exists $ENV{JS_UTF8}) {
     push @defines, "JS_C_STRINGS_ARE_UTF8" if $ENV{JS_UTF8};
@@ -205,7 +213,11 @@ WriteMakefile(
     LIBS            => ["$libs -l${lib}"], # e.g., "-lm"
     INC             => join(" ", map { "-I$_" } @incs),
     LICENSE         => "perl",
-    OBJECT          => q/$(O_FILES)/, 
+    OBJECT          => q/$(O_FILES)/,
+    EXTRA_META      => q{
+resources:
+    repository: svn://svn.versed.se/public/Perl/modules/JavaScript
+},
 );
 
 sub get_paths {

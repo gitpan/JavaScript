@@ -32,10 +32,10 @@ scripts among many other things. It does conversion between Perl and JS datatype
 INSTALLATION
 ------------
 
-To install JavaScript.pm, make sure you have libjs installed. Otherwize, grab a recent one from ftp://ftp.mozilla.org/pub/js. The module is tested with 1.5 and later.
+To install JavaScript.pm, make sure you have libjs installed. Otherwize, grab a recent one from ftp://ftp.mozilla.org/pub/js. The module requires 1.7 or later.
 
-Debian users can alternatively install the libsmjs-dev package by doing
-> apt-get install libsmjs-dev
+Debian users can alternatively install the libmozjs-dev package by doing
+> apt-get install libmozjs0g-dev
 
 Makefile.PL will ask a number of questions regarding threading, utf8 and e4x support. Prompting for this can be disabled by 
 setting their respective environment variable to a true (1) or false value (2)
@@ -74,7 +74,7 @@ Please send questions/patches/docs/comments to "Claes Jakobsson", claesjac@cpan.
 COPYRIGHT
 ---------
 
-Copyright (c) 2001 - 2007, Claes Jakobsson C<< <claesjac@cpan.org> >>. All rights reserved.
+Copyright (c) 2001 - 2008, Claes Jakobsson C<< <claesjac@cpan.org> >>. All rights reserved.
 
 This module is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself. See http://dev.perl.org/licenses/artistic.html

@@ -16,6 +16,10 @@ PJS_Exceptions.c
 PJS_Exceptions.h
 PJS_Function.c
 PJS_Function.h
+PJS_PerlArray.c
+PJS_PerlArray.h
+PJS_PerlHash.c
+PJS_PerlHash.h
 PJS_Property.c
 PJS_Property.h
 PJS_Runtime.c
@@ -26,9 +30,12 @@ PJS_TypeConversion.h
 PJS_Types.h
 README
 TODO
+dev_tests/PerlArray.pl
 dev_tests/bad_eval.pl
 dev_tests/bind_value.pl
+dev_tests/contexts.pl
 dev_tests/cx_leaktest.pl
+dev_tests/function_return.pl
 dev_tests/leaktest.pl
 dev_tests/memory_consumption.pl
 dev_tests/refs.pl
@@ -39,6 +46,8 @@ lib/JavaScript/Boxed.pm
 lib/JavaScript/Context.pm
 lib/JavaScript/Error.pm
 lib/JavaScript/Function.pm
+lib/JavaScript/PerlArray.pm
+lib/JavaScript/PerlHash.pm
 lib/JavaScript/Runtime.pm
 lib/JavaScript/Script.pm
 lib/Test/JavaScript/More.pm
@@ -73,6 +82,8 @@ t/28-test-javascript-more.t
 t/29-exceptions.t
 t/30-refcount.t
 t/31-version.t
+t/32-perlarray.t
+t/33-perlhash.t
 t/99-bottles-of-beer.t
 t/lib/DummyClass.pm
 t/pod-coverage.t
