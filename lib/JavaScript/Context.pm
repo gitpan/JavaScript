@@ -319,6 +319,44 @@ sub set_version {
     1;
 }
 
+
+{
+    my %options_by_tag = (
+        strict  => 1,
+        xml     => 1 << 6,
+        jit     => 1 << 11,
+    );
+
+    sub get_options {
+        my ($self) = @_;
+        my $options = jsc_get_options($self->{_impl});
+        return grep { $options & $options_by_tag{$_} } keys %options_by_tag;
+    }
+    
+    sub has_options {
+        my $self = shift;
+    
+        my %options = map { $_ => 1 } $self->get_options;
+        
+        !exists $options{$_} && return 0 for @_;
+
+        return 1;
+    }
+    
+    sub toggle_options {
+        my $self = shift;
+        
+        my $options = 0;
+        for (@_) {
+            $options |= 1 if exists $options_by_tag{lc $_};
+        }
+        
+        jsc_toggle_options($self->{_impl}, $options);
+        
+        1;
+    }
+}
+
 sub _destroy {
     my $self = shift;
     return unless $self->{'_impl'};
@@ -519,7 +557,41 @@ specifying what JS version we're using.
 A list of these can be found at L<http://developer.mozilla.org/en/docs/JSVersion> but may vary 
 depending on the version of your runtime.
 
+=item get_options ( )
+
+Returns a list of the options currently enabled on the context.
+
+=item has_options ( OPTION, ... )
+
+Tests if the options are eneabled on the context.
+
+=item toggle_options ( OPTION, ... )
+
+Toggles the options on the context.
+
 =back
+
+=head2 OPTIONS
+
+A number of options can be set on contexts. The following are understood (case-insensitive):
+
+=over 4
+
+=item strict
+
+Warn on dubious practice.
+
+=item xml
+
+ECMAScript for XML (E4X) support: parse E<lt>!-- --E<gt> as a token, not backward compatible with the comment-hiding hack used in HTML script tags.
+
+=item jit
+
+Enable JIT compilation. Requires a SpiderMonkey with TraceMonkey.
+
+=back
+
+(Descriptions copied from jsapi.h and thus copyrighted under its license)
 
 =begin PRIVATE
 
@@ -586,6 +658,14 @@ Returns the version of the context as a string, for example "1.7"
 =item jsc_set_version ( PJS_Context *context, const char *version) 
 
 Set the version of the context to the one specified in version.
+
+=item jsc_get_options ( PJS_Context *context )
+
+Returns the options set on the undelying JSContext
+
+=item jsc_toggle_options ( PJS_Context *context, U32 options )
+
+Toggle the options on the underlying JSContext
 
 =back
 

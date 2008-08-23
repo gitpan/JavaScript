@@ -1,5 +1,9 @@
 Revision history for Perl extension JavaScript.
 
+1.11  2008-08-23
+    - Added get_options, has_options and toggle_options so one can enable stuff like strict mode and JIT compilation
+      if the underlying SpiderMonkey supports it (TraceMonkey ftw!).
+      
 1.10  2008-08-11
     - Warn user that JS_THREADSAFE is not what's recommended.
     - Added a native PerlHash type that encapsulates a Perl hash reference in JavaScript.

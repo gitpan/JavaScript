@@ -84,6 +84,7 @@ t/30-refcount.t
 t/31-version.t
 t/32-perlarray.t
 t/33-perlhash.t
+t/34-options.t
 t/99-bottles-of-beer.t
 t/lib/DummyClass.pm
 t/pod-coverage.t

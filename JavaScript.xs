@@ -426,7 +426,21 @@ jsc_can(cx, func_name)
     OUTPUT:
         RETVAL
 
-
+U32
+jsc_get_options(cx)
+    PJS_Context *cx;
+    CODE:
+        RETVAL = JS_GetOptions(cx->cx);
+    OUTPUT:
+        RETVAL
+    
+void
+jsc_toggle_options(cx, options)
+    PJS_Context *cx;
+    U32         options;
+    CODE:
+        JS_ToggleOptions(cx->cx, options);
+    
 MODULE = JavaScript     PACKAGE = JavaScript::Script
 
 jsval
