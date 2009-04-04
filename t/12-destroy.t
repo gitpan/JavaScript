@@ -19,4 +19,5 @@ ok( $rt1->_destroy(), "destroyed runtime");
   ok( my $rt1 = JavaScript::Runtime->new(), "created new runtime" );
   ok( my $cx1 = $rt1->create_context(), "created context" );
 }
+
 ok( 1, "left scope, hopefully they're gone.");

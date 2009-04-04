@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 19;
+use Test::More tests => 20;
 
 use strict;
 use warnings;
@@ -96,6 +96,9 @@ function test_complex(v1) {
     ok(i == 2, "Complex ok");
 }
 
+function test_function(v1) {
+    v1();
+}
 END_OF_CODE
 
 $cx1->call(test_undefined => undef);
@@ -106,3 +109,4 @@ $cx1->call(test_string => "", "foobar", $str);
 $cx1->call(test_array => [], [1, 2, 3]);
 $cx1->call(test_hash => {}, { a => 1, b => 2 });
 $cx1->call(test_complex => { a => [1, 2, 3], b => { c => 1 } });
+$cx1->call(test_function => sub { ok(1); });

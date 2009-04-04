@@ -21,7 +21,7 @@ JSTrapStatus PJS_perl_trap_handler(JSContext *cx, JSScript *script, jsbytecode *
     SV *scx, *rv;
     int rc;
     JSTrapStatus status = JSTRAP_CONTINUE;
-    
+
     if (handler) {
         ENTER ;
         SAVETMPS ;
@@ -67,13 +67,17 @@ PJS_CreateRuntime(int maxbytes) {
     if(runtime == NULL) {
         croak("Failed to allocate memoery for PJS_Runtime");
     }
-
+    
+#ifdef JS_C_STRINGS_ARE_UTF8 && JS_VERSION >= 180
+    JS_SetCStringsAreUTF8();
+#endif
+    
     runtime->rt = JS_NewRuntime(maxbytes);
     if(runtime->rt == NULL) {
         Safefree(runtime);
         croak("Failed to create runtime");
     }
-    
+        
     return runtime;
 }
 

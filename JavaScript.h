@@ -30,6 +30,7 @@ extern "C" {
 #include "PJS_Common.h"
 #include "PJS_PerlArray.h"
 #include "PJS_PerlHash.h"
+#include "PJS_PerlSub.h"
 
 #ifdef __cplusplus
 }

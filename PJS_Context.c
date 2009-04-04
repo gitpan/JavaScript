@@ -12,6 +12,7 @@
 #include "PJS_Class.h"
 #include "PJS_PerlArray.h"
 #include "PJS_PerlHash.h"
+#include "PJS_PerlSub.h"
 
 /* Global class, does nothing */
 static JSClass global_class = {
@@ -95,9 +96,7 @@ PJS_Context * PJS_CreateContext(PJS_Runtime *rt) {
         croak("Failed to create JSContext");
     }
 
-#ifdef JSOPTION_DONT_REPORT_UNCAUGHT
     JS_SetOptions(pcx->cx, JSOPTION_DONT_REPORT_UNCAUGHT);
-#endif
 
     obj = JS_NewObject(pcx->cx, &global_class, NULL, NULL);
     if (JS_InitStandardClasses(pcx->cx, obj) == JS_FALSE) {
@@ -119,6 +118,11 @@ PJS_Context * PJS_CreateContext(PJS_Runtime *rt) {
         croak("Perl classes not loaded properly.");        
     }
 
+    if (PJS_InitPerlSubClass(pcx, obj) == JS_FALSE) {
+        PJS_DestroyContext(pcx);
+        croak("Perl class 'PerlSub' not loaded properly.");        
+    }
+
     pcx->rt = rt;
     /* Add context to context list */
     pcx->next = rt->list;
@@ -136,13 +140,27 @@ void PJS_DestroyContext(PJS_Context *pcx) {
     if (pcx == NULL) {
         return;
     }
-    
-    hv_clear(pcx->function_by_name);
-    hv_clear(pcx->class_by_name);
-    hv_clear(pcx->class_by_package);
+
+    if (pcx->function_by_name) {
+        hv_undef(pcx->function_by_name);
+        pcx->function_by_name = NULL;
+    }
         
+    if (pcx->class_by_name) {
+        hv_undef(pcx->class_by_name);
+        pcx->class_by_name = NULL;
+    }
+    
+    if (pcx->class_by_package) {
+        hv_undef(pcx->class_by_package);
+        pcx->class_by_package = NULL;
+    }
+    
     /* Destory context */
-    JS_DestroyContext(pcx->cx);
+    if (pcx->cx) {
+        JS_DestroyContext(pcx->cx);
+        pcx->cx = NULL;
+    }
 
     Safefree(pcx);
 }

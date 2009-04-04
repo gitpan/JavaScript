@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 7;
+use Test::More tests => 8;
 
 use strict;
 use warnings;
@@ -48,11 +48,19 @@ EOC
 ok( my $rv = $cx1->eval( $code ), "eval'd code" );
 is( $rv, "called test function from perl space okay", "roundtrip");
 
-SKIP: {
-    eval "use List::Util";
-    skip ("List::Util is not installed", 1) if $@;
-    no warnings 'once';
-    is ($cx1->call('perl_apply', sub { return List::Util::reduce { $a + $b } @_ },
-                   1, 2, 3, 4),
-        10, 'invoke perlsub from javascript');
-}
+eval "use List::Util";
+skip ("List::Util is not installed", 1) if $@;
+no warnings 'once';
+is ($cx1->call('perl_apply', sub { my $self = shift; return List::Util::reduce { $a + $b } @_ },
+	       1, 2, 3, 4),
+    10, 'invoke perlsub from javascript');
+
+$cx1->bind_function(
+		    testapply => sub {
+		       my $self = shift;
+		       return $self
+		     }
+		   );
+
+my $result = $cx1->eval(q!testapply.apply({ test: 1 }, []);!);
+is_deeply( $result, { test => 1}, "test that apply _really_ does what it should");

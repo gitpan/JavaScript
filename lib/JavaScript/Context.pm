@@ -4,24 +4,23 @@ use strict;
 use warnings;
 
 use Carp qw(croak);
-use Scalar::Util qw(weaken);
+use Scalar::Util qw(weaken refaddr);
 
 use JavaScript;
 
 my %Context;
+my %Runtime;
 
 sub new {
     my ($pkg, $runtime) = @_;
 
-    $pkg = ref $pkg || $pkg;
+    my $self = jsc_create($runtime->{_impl});
 
-    my $cx_ptr = jsc_create($runtime->{_impl});
+    my $ptr = $self->jsc_ptr;
     
-    my $self = bless { _impl => $cx_ptr }, $pkg;
-
-    $Context{$$cx_ptr} = $self;
-    weaken($Context{$$cx_ptr});
-    $self->{runtime} = $runtime;
+    $Context{$ptr} = $self;
+    weaken($Context{$ptr});
+    $Runtime{$ptr} = $runtime;
     
     return $self;
 }
@@ -33,7 +32,7 @@ sub eval {
     my @caller = caller();
     $name ||= "$caller[0] line $caller[2]";
     
-    my $rval = jsc_eval($self->{_impl}, $source, $name);
+    my $rval = jsc_eval($self, $source, $name);
 
     return $rval;
 }
@@ -47,7 +46,7 @@ sub eval_file {
     my $source = <$in>;
     close($in);
 
-    my $rval = jsc_eval($self->{_impl}, $source, $file);
+    my $rval = jsc_eval($self, $source, $file);
 
     return $rval;
 }
@@ -55,13 +54,13 @@ sub eval_file {
 sub find {
     my ($self, $context) = @_;
 
-    $context = $$context if ref $context eq 'SCALAR';
+    my $ptr = ref $context ? $context->ptr : $context;
     
-    if (!exists $Context{$context}) {
+    if (!exists $Context{$ptr}) {
         croak "Can't find context $context";
     }
     
-    return $Context{$context};
+    return $Context{$ptr};
 }
 
 sub call {
@@ -69,13 +68,13 @@ sub call {
     my $function = shift;
     my $args     = [@_];
     
-    return jsc_call($self->{_impl}, $function, $args);
+    return jsc_call($self, $function, $args);
 }
 
 sub can {
     my ($self, $method) = @_;
 
-    return jsc_can($self->{_impl}, $method);
+    return jsc_can($self, $method);
 }
 
 # Functions for binding perl stuff into JS namespace
@@ -247,7 +246,7 @@ sub bind_class {
     # Flags
     my $flags = $args{flags};
     
-    jsc_bind_class($self->{_impl}, $name, $pkg, $cons, $fs, $static_fs, $ps, $static_ps, $flags);
+    jsc_bind_class($self, $name, $pkg, $cons, $fs, $static_fs, $ps, $static_ps, $flags);
     
     return;
 }
@@ -276,7 +275,7 @@ sub bind_value {
             next;
         }
         
-        jsc_bind_value($self->{_impl}, $parent,
+        jsc_bind_value($self, $parent,
                        $paths[$num], $num == $#paths ? $object : {});
     }
     
@@ -289,7 +288,7 @@ sub unbind_value {
     my @paths = split /\./, $name;
     $name = pop @paths;
     my $parent = join(".", @paths);
-    jsc_unbind_value($self->{_impl}, $parent, $name);
+    jsc_unbind_value($self, $parent, $name);
 }
 
 sub set_branch_handler {
@@ -297,25 +296,25 @@ sub set_branch_handler {
 
     $handler = _resolve_method($handler, 1);
 
-    jsc_set_branch_handler($self->{_impl}, $handler);
+    jsc_set_branch_handler($self, $handler);
 }
 
 sub compile {
     my $self = shift;
     my $source = shift;
 
-    my $script = JavaScript::Script->new($self->{_impl}, $source);
+    my $script = JavaScript::Script->new($self, $source);
     return $script;
 }
 
 sub get_version {
     my ($self, $version) = @_;
-    return jsc_get_version($self->{_impl});
+    return jsc_get_version($self);
 }
 
 sub set_version {
     my ($self, $version) = @_;
-    jsc_set_version($self->{_impl}, $version);
+    jsc_set_version($self, $version);
     1;
 }
 
@@ -329,7 +328,7 @@ sub set_version {
 
     sub get_options {
         my ($self) = @_;
-        my $options = jsc_get_options($self->{_impl});
+        my $options = jsc_get_options($self);
         return grep { $options & $options_by_tag{$_} } keys %options_by_tag;
     }
     
@@ -351,7 +350,7 @@ sub set_version {
             $options |= 1 if exists $options_by_tag{lc $_};
         }
         
-        jsc_toggle_options($self->{_impl}, $options);
+        jsc_toggle_options($self, $options);
         
         1;
     }
@@ -359,11 +358,14 @@ sub set_version {
 
 sub _destroy {
     my $self = shift;
-    return unless $self->{'_impl'};
-    delete $Context{${$self->{_impl}}};
-    jsc_destroy($self->{'_impl'} );
-    delete $self->{'_impl'};
-    delete $self->{runtime};
+    return unless $self;
+    my $ptr = $self->jsc_ptr;
+    return unless exists $Context{$ptr};
+    delete $Context{$ptr};
+    jsc_destroy($self);
+
+    delete $Runtime{$ptr};
+    
     return 1;
 }
 
@@ -666,6 +668,10 @@ Returns the options set on the undelying JSContext
 =item jsc_toggle_options ( PJS_Context *context, U32 options )
 
 Toggle the options on the underlying JSContext
+
+=item jsc_ptr ( PJS_Context *context )
+
+Return the address of the context for identification purposes.
 
 =back
 

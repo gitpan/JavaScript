@@ -1,5 +1,16 @@
 Revision history for Perl extension JavaScript.
 
+1.12  2009-04-04
+	- Guard against stack corruption (Salvador Ortiz Garcia)
+	- 64-bit build issues (Salvador Ortiz Garcia)
+	- Updated Makefile.PL to use new META_* instead of EXTRA_META for repo.
+	- Update UTF8 stuff to work with SM 1.8 (James Duncan)
+	- Added a native PerlSub type that encapsulates Perl subs.
+	- Converts SM regexps to Perl regexps (James Duncan)
+	- Added 'apply' method to bound Perl subs (James Duncan)
+    - JavaScript::Context is now a PJS_Context * (T_PTROBJ) and not a hash
+    - JavaScript::Error now has a stacktrace method that returns the JS stacktrace.
+    
 1.11  2008-08-23
     - Added get_options, has_options and toggle_options so one can enable stuff like strict mode and JIT compilation
       if the underlying SpiderMonkey supports it (TraceMonkey ftw!).

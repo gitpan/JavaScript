@@ -53,7 +53,13 @@ I32 perl_call_sv_with_jsvals_rsv(JSContext *cx, JSObject *obj, SV *code, SV *cal
         
         for (arg = 0; arg < argc; arg++) {
             SV *sv = sv_newmortal();
+
+            PUTBACK ; /* Make perl take note of our local SP*/
+
             JSVALToSV(cx, NULL, argv[arg], &sv);
+
+            SPAGAIN ; /* Just to be safe */
+	
             XPUSHs(sv);
         }
         

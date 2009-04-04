@@ -35,7 +35,7 @@ sub DESTROY {
 
     my $cx = $self->context();
     
-    JavaScript::Context::jsc_free_root( $self->context->{_impl}, $self->jsvalue);
+    JavaScript::Context::jsc_free_root( $self->context, $self->jsvalue);
 }
 
 1;

@@ -225,16 +225,7 @@ JSBool PJS_ConvertPerlToJSType(JSContext *cx, JSObject *seen, JSObject *obj, SV 
             warn("returning references to primitive types is not supported yet");   
         }
         else if(type == SVt_PVCV) {
-            JSObject *newobj;
-            JSFunction *jsfun;
-            SvREFCNT_inc(ref);
-
-            jsfun = JS_NewFunction(cx, perl_call_jsfunc, 0, 0, NULL, NULL);
-            newobj = JS_GetFunctionObject(jsfun);
-            /* put the cv as a property on the function object */
-            if (JS_DefineProperty(cx, newobj, "_perl_func", PRIVATE_TO_JSVAL(ref), NULL, NULL, 0) == JS_FALSE) {
-                warn("Failed to defined property for _perl_func");
-            }
+            JSObject *newobj = PJS_NewPerlSubObject(cx, obj, ref);            
             *rval = OBJECT_TO_JSVAL(newobj);
         }
         else {
@@ -340,6 +331,29 @@ JSBool JSVALToSV(JSContext *cx, HV *seen, jsval v, SV** sv) {
                                                    sv_2mortal(newSViv(PTR2IV(x))), NULL));
                 return JS_TRUE;
             }
+	    else if (!strcmp(JS_GET_CLASS(cx,object)->name, "RegExp")) {
+	      jsval src;
+
+	      if ( JS_GetProperty(cx, object, "source", &src) == JS_TRUE ) {
+		dSP;
+		ENTER;
+		SAVETMPS;
+		PUSHMARK(SP);
+		SV *arg = sv_newmortal();	      
+		sv_setpv(arg, JS_GetStringBytes(JS_ValueToString(cx, src)));		
+		XPUSHs(arg);
+		PUTBACK;
+		call_pv("JavaScript::_compile_string_re", G_SCALAR);
+		SPAGAIN;
+		sv_setsv(*sv, POPs);
+		PUTBACK;
+		FREETMPS;
+		LEAVE;
+		return JS_TRUE;
+	      }
+
+	      return JS_FALSE;
+	    }
             else if (OBJ_IS_NATIVE(object) &&
                      (OBJ_GET_CLASS(cx, object)->flags & JSCLASS_HAS_PRIVATE) &&
                      (strcmp(OBJ_GET_CLASS(cx, object)->name, "Error") != 0)) {

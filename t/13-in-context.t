@@ -20,7 +20,7 @@ my $fn = $cx1->eval( $code );
 
 my $obj = { message => 'okay called from inside context' };
 my $result = JavaScript::Context::jsc_call_in_context(
-                                                      $cx1->{_impl},
+                                                      $cx1,
                                                       $fn,
                                                       [],
                                                       {%{$obj}},

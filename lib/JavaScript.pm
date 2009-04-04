@@ -23,7 +23,7 @@ our @EXPORT_OK = (@EXPORT);
 
 our %EXPORT_TAGS = ( all => [@EXPORT_OK] );
 
-our $VERSION = "1.11";
+our $VERSION = "1.12";
 
 our $MAXBYTES = 1024 ** 2;
 
@@ -75,6 +75,11 @@ sub supports {
 sub create_runtime {
     my $pkg = shift;
     return JavaScript::Runtime->new(@_);
+}
+
+sub _compile_string_re {
+    my $s_re = shift;
+    return qr/$s_re/;
 }
 
 bootstrap JavaScript $VERSION;

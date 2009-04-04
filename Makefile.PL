@@ -214,10 +214,11 @@ WriteMakefile(
     INC             => join(" ", map { "-I$_" } @incs),
     LICENSE         => "perl",
     OBJECT          => q/$(O_FILES)/,
-    EXTRA_META      => q{
-resources:
-    repository: svn://svn.versed.se/public/Perl/modules/JavaScript
-},
+    META_MERGE      => {
+        resources => {
+            repository => "svn://svn.versed.se/public/Perl/modules/JavaScript"
+        }
+    },
 );
 
 sub get_paths {

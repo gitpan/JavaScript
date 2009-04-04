@@ -58,6 +58,7 @@ $cx1->bind_class(
 my $foo = Foo->new();
 $foo->{std} = 10;
 
+$cx1->bind_function(println => sub { print STDERR @_, "\n"; });
 $cx1->bind_function( name => 'debug',
              func => sub { warn Dumper(@_) } );
 $cx1->bind_function( name => 'isa_ok',
@@ -105,6 +106,7 @@ var ret; // to return the object from JS space
 try {
   throw_foo();
 } catch (e) {
+  println("Here");
   isa_ok( e, "Foo" ); // this test passes, but if run, breaks the next test
   is( e.std, 5, "std is correct" );
   is( e.wrapped_value, 4, "wrapped is correct" );

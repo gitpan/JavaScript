@@ -10,8 +10,10 @@
 
 typedef PJS_PerlArray * JavaScript__PerlArray;
 typedef PJS_PerlHash *  JavaScript__PerlHash;
+typedef PJS_PerlSub *   Javascript__PerlSub;
 typedef PJS_Class *     JavaScript__PerlClass;
 typedef PJS_Function *  JavaScript__PerlFunction;
+typedef PJS_Context *   JavaScript__Context;
 
 MODULE = JavaScript     PACKAGE = JavaScript
 PROTOTYPES: DISABLE
@@ -111,7 +113,7 @@ jsr_destroy_perl_interrupt_handler(handler)
     
 MODULE = JavaScript     PACKAGE = JavaScript::Context
 
-PJS_Context *
+JavaScript::Context 
 jsc_create(rt)
     PJS_Runtime *rt;
     CODE:
@@ -119,9 +121,17 @@ jsc_create(rt)
     OUTPUT:
         RETVAL
 
+IV
+jsc_ptr(cx)
+    JavaScript::Context cx;
+    CODE:
+        RETVAL = (IV) cx;
+    OUTPUT:
+        RETVAL
+        
 int
 jsc_destroy(cx)
-    PJS_Context *cx;
+    JavaScript::Context cx;
     CODE:
         PJS_DestroyContext(cx);
         RETVAL = 0;
@@ -130,7 +140,7 @@ jsc_destroy(cx)
 
 const char *
 jsc_get_version(cx)
-    PJS_Context *cx;
+    JavaScript::Context cx;
     CODE:
         RETVAL = JS_VersionToString(JS_GetVersion(PJS_GetJSContext(cx)));
     OUTPUT:
@@ -138,14 +148,14 @@ jsc_get_version(cx)
 
 void
 jsc_set_version(cx, version)
-    PJS_Context *cx;
+    JavaScript::Context cx;
     const char *version;
     CODE:
         JS_SetVersion(PJS_GetJSContext(cx), JS_StringToVersion(version));
         
 void
 jsc_set_branch_handler(cx, handler)
-    PJS_Context *cx;
+    JavaScript::Context cx;
     SV *handler;
     CODE:
         if (!SvOK(handler)) {
@@ -168,7 +178,7 @@ jsc_set_branch_handler(cx, handler)
 
 void
 jsc_bind_function(cx, name, callback)
-    PJS_Context *cx;
+    JavaScript::Context cx;
     char *name;
     SV *callback;
     CODE:
@@ -176,7 +186,7 @@ jsc_bind_function(cx, name, callback)
 
 void
 jsc_bind_class(cx, name, pkg, cons, fs, static_fs, ps, static_ps, flags)
-    PJS_Context *cx;
+    JavaScript::Context cx;
     char *name;
     char *pkg;
     SV *cons;
@@ -190,10 +200,10 @@ jsc_bind_class(cx, name, pkg, cons, fs, static_fs, ps, static_ps, flags)
 
 int
 jsc_bind_value(cx, parent, name, object)
-    PJS_Context     *cx;
-    char            *parent;
-    char            *name;
-    SV              *object;
+    JavaScript::Context     cx;
+    char                    *parent;
+    char                    *name;
+    SV                      *object;
     PREINIT:
         jsval val, pval;
         JSObject *gobj, *pobj;
@@ -221,9 +231,9 @@ jsc_bind_value(cx, parent, name, object)
 
 void
 jsc_unbind_value(cx, parent, name)
-    PJS_Context     *cx;
-    char            *parent;
-    char            *name;
+    JavaScript::Context cx;
+    char                *parent;
+    char                *name;
     PREINIT:
         jsval val, pval;
         JSObject *gobj, *pobj;
@@ -249,7 +259,7 @@ jsc_unbind_value(cx, parent, name)
 
 jsval 
 jsc_eval(cx, source, name)
-    PJS_Context *cx;
+    JavaScript::Context cx;
     char *source;
     char *name;
     PREINIT:
@@ -293,7 +303,7 @@ jsc_eval(cx, source, name)
 
 void
 jsc_free_root(cx, root)
-    PJS_Context *cx;
+    JavaScript::Context cx;
     SV *root;
     PREINIT:
          jsval *x;
@@ -303,7 +313,7 @@ jsc_free_root(cx, root)
 
 jsval
 jsc_call(cx, function, args)
-    PJS_Context *cx;
+    JavaScript::Context cx;
     SV *function;
     SV *args;
     PREINIT:
@@ -350,7 +360,7 @@ jsc_call(cx, function, args)
 
 SV *
 jsc_call_in_context( cx, afunc, args, rcx, class )
-    PJS_Context *cx;
+    JavaScript::Context cx;
     SV *afunc
     SV *args;
     SV *rcx;
@@ -406,7 +416,7 @@ jsc_call_in_context( cx, afunc, args, rcx, class )
 
 int
 jsc_can(cx, func_name)
-    PJS_Context *cx;
+    JavaScript::Context cx;
     char *func_name;
     PREINIT:
         jsval val;
@@ -428,7 +438,7 @@ jsc_can(cx, func_name)
 
 U32
 jsc_get_options(cx)
-    PJS_Context *cx;
+    JavaScript::Context cx;
     CODE:
         RETVAL = JS_GetOptions(cx->cx);
     OUTPUT:
@@ -436,7 +446,7 @@ jsc_get_options(cx)
     
 void
 jsc_toggle_options(cx, options)
-    PJS_Context *cx;
+    JavaScript::Context cx;
     U32         options;
     CODE:
         JS_ToggleOptions(cx->cx, options);
@@ -460,7 +470,7 @@ jss_execute(psc)
 
 PJS_Script *
 jss_compile(cx, source)
-    PJS_Context *cx;
+    JavaScript::Context cx;
     char *source;
     PREINIT:
         PJS_Script *psc;

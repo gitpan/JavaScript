@@ -22,6 +22,14 @@ sub line {
     return $_[0]->{lineNumber};
 }
 
+sub stacktrace {
+    my $stack = $_[0]->{stack};
+    return () unless $stack;
+    return map {
+        /^(.*?)\@(.*?):(\d+)$/ && { function => $1, file => $2, lineno => $3 }
+    } split /\n/, $stack;
+}
+
 1;
 __END__
 
@@ -50,6 +58,10 @@ The line number in the file that caused the exception.
 =item as_string
 
 A stringification of the exception in the format C<$message at $line in $file>
+
+=item stacktrace
+
+Returns the stacktrace for the exception as a list of hashrefs containing C<function>, C<file> and C<lineno>.
 
 =back
 

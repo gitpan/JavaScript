@@ -19,6 +19,7 @@ typedef struct PJS_Runtime PJS_Runtime;
 typedef struct PJS_Script PJS_Script;
 typedef struct PJS_PerlArray PJS_PerlArray;
 typedef struct PJS_PerlHash PJS_PerlHash;
+typedef struct PJS_PerlSub PJS_PerlSub;
 
 #ifdef __cplusplus
 }
