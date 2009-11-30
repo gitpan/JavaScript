@@ -19,6 +19,7 @@ lib/JavaScript/Boxed.pm
 lib/JavaScript/Context.pm
 lib/JavaScript/Error.pm
 lib/JavaScript/Function.pm
+lib/JavaScript/Generator.pm
 lib/JavaScript/PerlArray.pm
 lib/JavaScript/PerlHash.pm
 lib/JavaScript/Runtime.pm
@@ -88,6 +89,7 @@ t/32-perlarray.t
 t/33-perlhash.t
 t/34-options.t
 t/35-regexp.t
+t/36-generator.t
 t/99-bottles-of-beer.t
 t/lib/DummyClass.pm
 t/pod-coverage.t

@@ -8,7 +8,7 @@ use warnings;
 use JavaScript;
 
 if (JavaScript->does_handle_utf8) {
-    plan tests => 8;
+    plan tests => 9;
 }
 else {
     plan skip_all => "No unicode support in SpiderMonkey";
@@ -43,4 +43,6 @@ $context->bind_value( ucopy => "\x{2668}" );
 $context->bind_value( uhash => { "\x{2668}" => 1 } );
 is( $context->eval(q{uhash[ucopy]}), 1, "unicode hash keys from perl" );
 
-
+# Creating another runtime should work
+my $rt2 = JavaScript::Runtime->new();
+ok(1);

@@ -36,7 +36,7 @@ JSBool PJS_ConvertPerlToJSType(JSContext *cx, JSObject *seen, JSObject *obj, SV 
         /* XXX: test this more */
         ref = *av_fetch((AV *) SvRV(SvRV(ref)), 0, 0);
     }
-    
+
     if (sv_isobject(ref)) { /* blessed */
         PJS_Context *pcx;
         PJS_Class *pjsc;
@@ -51,6 +51,12 @@ JSBool PJS_ConvertPerlToJSType(JSContext *cx, JSObject *seen, JSObject *obj, SV 
             return JS_TRUE;
         }
         
+	if (strcmp(name, PJS_GENERATOR_PACKAGE) == 0) {
+	  JSObject *obj = INT2PTR(JSObject *, SvIV((SV *) SvRV(PJS_call_perl_method("content", ref, NULL))));
+	  *rval = OBJECT_TO_JSVAL(obj);
+	  return JS_TRUE;
+	}
+
         /* ugly hack, this needs to be nicer */
         if((pcx = PJS_GET_CONTEXT(cx)) == NULL) {
             *rval = JSVAL_VOID;
@@ -208,7 +214,7 @@ JSBool PJS_ConvertPerlToJSType(JSContext *cx, JSObject *seen, JSObject *obj, SV 
             av_length = av_len(av);
             for(cnt = 0; cnt <= av_length; cnt++) {
                 jsval value;
-                if (PJS_ConvertPerlToJSType(cx, seen, obj, av_shift(av), &value) == JS_FALSE) {
+                if (PJS_ConvertPerlToJSType(cx, seen, obj, *(av_fetch(av, cnt, 0)), &value) == JS_FALSE) {
                     *rval = JSVAL_VOID;
                     return JS_FALSE;
                 }
@@ -356,7 +362,9 @@ JSBool JSVALToSV(JSContext *cx, HV *seen, jsval v, SV** sv) {
 	    }
             else if (OBJ_IS_NATIVE(object) &&
                      (OBJ_GET_CLASS(cx, object)->flags & JSCLASS_HAS_PRIVATE) &&
-                     (strcmp(OBJ_GET_CLASS(cx, object)->name, "Error") != 0)) {
+                     (strcmp(OBJ_GET_CLASS(cx, object)->name, "Error") != 0) &&
+		     (strcmp(OBJ_GET_CLASS(cx, object)->name, "Generator") != 0)
+		     ) {
                 /* Object with a private means the actual perl object is there */
                 /* This is kludgy because function is also object with private,
                    we need to turn this to use hidden property on object */
@@ -366,6 +374,27 @@ JSBool JSVALToSV(JSContext *cx, HV *seen, jsval v, SV** sv) {
                     return JS_TRUE;
                 }
             }
+	    else if (OBJ_IS_NATIVE(object) &&
+		     (OBJ_GET_CLASS(cx, object)->flags & JSCLASS_HAS_PRIVATE) &&
+		     (strcmp(OBJ_GET_CLASS(cx, object)->name, "Generator") == 0)
+		     ){
+	      SV *content = sv_2mortal(newRV_noinc(newSViv(PTR2IV(object))));
+	      SV *pcx = sv_2mortal(newSViv(PTR2IV(PJS_GET_CONTEXT(cx))));
+	      jsval *x;
+                
+	      Newz(1, x, 1, jsval);
+	      if (x == NULL) {
+		croak("Failed to allocate memory for jsval");
+	      }
+	      *x = v;
+	      JS_AddRoot(cx, (void *)x);
+
+	      sv_setsv(*sv, PJS_call_perl_method("new",
+						 newSVpv(PJS_GENERATOR_PACKAGE, 0),
+						 content, pcx,
+						 sv_2mortal(newSViv(PTR2IV(x))), NULL));
+	      return JS_TRUE;	      
+	    }
             
             destroy_hv = 0;
             if (!seen) {

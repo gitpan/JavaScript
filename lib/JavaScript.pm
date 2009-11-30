@@ -23,7 +23,7 @@ our @EXPORT_OK = (@EXPORT);
 
 our %EXPORT_TAGS = ( all => [@EXPORT_OK] );
 
-our $VERSION = "1.12";
+our $VERSION = "1.13";
 
 our $MAXBYTES = 1024 ** 2;
 
@@ -33,6 +33,7 @@ require JavaScript::Error;
 require JavaScript::Function;
 require JavaScript::Runtime;
 require JavaScript::Script;
+require JavaScript::Generator;
 
 sub get_engine_version {
     my $version_str = js_get_engine_version();

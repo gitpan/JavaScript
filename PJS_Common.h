@@ -36,6 +36,11 @@ extern "C" {
 */
 #define PJS_FUNCTION_PACKAGE  "JavaScript::Function"
 
+/*! @define PJS_GENERATOR_PACKAGE
+    @abstract Perl package to bless Generators into
+*/
+#define PJS_GENERATOR_PACKAGE "JavaScript::Generator"
+
 /*! @define PJS_BOXED_PACKAGE
     @abstract Perl package to bless boxed values into
 */
