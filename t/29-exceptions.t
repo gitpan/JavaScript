@@ -11,7 +11,7 @@ BEGIN {
     plan skip_all => "Engine version 1.7 or later require" if $version < 1.7;
 }
 
-plan tests => 17;
+plan tests => 26;
 
 my $runtime = new JavaScript::Runtime();
 my $context = $runtime->create_context();
@@ -117,8 +117,56 @@ catch (e) {
 EOP
 is($@, "bar" );
 
+$ret =
+$context->eval(<<EOP);
+try {
+  throw "foo";
+}
+catch (e) {
+}
+1;
+EOP
+is($@, undef);
 
 $context->bind_class(constructor => sub { die "Can't create"; }, name => 'CantCreate');
 $ret = 
 $context->eval("var f = new CantCreate");
 like($@, qr/Can't create/);
+
+$context->set_pending_exception("erple");
+$context->eval("function(){ }");
+like($@, qr/erple/);
+$context->eval("function(){ };\n");
+is($@, undef);
+
+$context->set_pending_exception();
+$context->eval("function(){ };\n");
+is($@, undef);
+
+{
+    my $thing = sub {
+        $context->set_pending_exception('bleh');
+    };
+    $context->bind_value(flibble => $thing);
+
+    $context->eval("flibble();\n");
+    like($@, qr{bleh});
+    $context->eval("flibble();\n");
+    like($@, qr{bleh});
+
+    $context->eval("function(){ };\n");
+    is($@, undef);
+    $context->eval("try { flibble(); } catch(e){ e = undefined }");
+    is($@, undef);
+}
+
+{
+    my $thing = sub {
+        $context->eval("throw 'yarghle';");
+        like($@, qr{yarghle});
+    };
+    $context->bind_value(yargh => $thing);
+    $context->eval("(function(){ yargh();})()");
+}
+
+undef $context;

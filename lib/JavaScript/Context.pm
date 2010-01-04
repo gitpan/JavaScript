@@ -37,6 +37,17 @@ sub eval {
     return $rval;
 }
 
+sub set_pending_exception {
+    my ($self, $exception) = @_;
+
+    if(!defined($exception)){
+        return;
+    }
+    my $rval = jsc_set_pending_exception($self, $exception); 
+
+    return $rval;
+}
+
 sub eval_file {
     my ($self, $file) = @_;
 
@@ -273,6 +284,8 @@ sub bind_value {
             croak "${name} already exists, unbind it first" if $num == $#paths;
 
             next;
+        } else {
+          $@ = undef;
         }
         
         jsc_bind_value($self, $parent,
