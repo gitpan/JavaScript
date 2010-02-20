@@ -10,7 +10,7 @@
 
 typedef PJS_PerlArray * JavaScript__PerlArray;
 typedef PJS_PerlHash *  JavaScript__PerlHash;
-typedef PJS_PerlSub *   Javascript__PerlSub;
+typedef PJS_PerlSub *   JavaScript__PerlSub;
 typedef PJS_Class *     JavaScript__PerlClass;
 typedef PJS_Function *  JavaScript__PerlFunction;
 typedef PJS_Context *   JavaScript__Context;
@@ -541,7 +541,7 @@ DESTROY(obj)
     JavaScript::PerlArray obj;
     CODE:
         if (obj->av != NULL) {
-            av_undef(obj->av);
+            SvREFCNT_dec(obj->av);
         }
         obj->av = NULL;
         Safefree(obj);
@@ -572,10 +572,18 @@ DESTROY(obj)
     JavaScript::PerlHash obj;
     CODE:
         if (obj->hv != NULL) {
-            hv_undef(obj->hv);
+            SvREFCNT_dec(obj->hv);
         }
         obj->hv = NULL;
         Safefree(obj);
+
+MODULE = JavaScript     PACKAGE = JavaScript::PerlSub
+
+void
+DESTROY(obj)
+    JavaScript::PerlSub obj;
+    CODE:
+      Safefree(obj);
 
 MODULE = JavaScript     PACKAGE = JavaScript::PerlClass
 

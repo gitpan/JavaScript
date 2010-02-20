@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               JavaScript
-version:            1.15
+version:            1.16
 abstract:           Perl extension for executing embedded JavaScript
 author:
     - Claes Jakobsson <claesjac@cpan.org>
